@@ -1,0 +1,155 @@
+---
+import Layout from "./_Layout.astro";
+---
+
+<Layout title="JerseySports | Sign In">
+  <div class="px-4 py-8 select-none bg-white min-h-[70vh]">
+    <div class="max-w-md mx-auto">
+      
+      <!-- Container -->
+      <div id="auth-container">
+        <!-- Form Header (Tabs) -->
+        <div class="flex border-b border-black mb-8">
+          <button 
+            id="tab-signin" 
+            class="flex-1 py-3 font-mono text-xs font-black tracking-widest uppercase border-b-2 border-black focus:outline-none"
+          >
+            SIGN IN
+          </button>
+          <button 
+            id="tab-signup" 
+            class="flex-1 py-3 font-mono text-xs font-black tracking-widest uppercase border-b-2 border-transparent text-black/40 hover:text-black focus:outline-none"
+          >
+            CREATE ACCOUNT
+          </button>
+        </div>
+
+        <!-- Form Element -->
+        <form id="auth-form" class="flex flex-col gap-5" onsubmit="event.preventDefault();">
+          {/* Name Field (Sign Up Only) */}
+          <div id="field-name" class="hidden">
+            <label for="auth-name" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Full Name</label>
+            <input 
+              type="text" 
+              id="auth-name" 
+              placeholder="YOUR NAME" 
+              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase placeholder:text-black/30" 
+            />
+          </div>
+
+          {/* Email Field */}
+          <div>
+            <label for="auth-email" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Email Address</label>
+            <input 
+              type="email" 
+              id="auth-email" 
+              required 
+              placeholder="EMAIL@DOMAIN.COM" 
+              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase placeholder:text-black/30" 
+            />
+          </div>
+
+          {/* Password Field */}
+          <div>
+            <label for="auth-password" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Password</label>
+            <input 
+              type="password" 
+              id="auth-password" 
+              required 
+              placeholder="••••••••" 
+              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none placeholder:text-black/30" 
+            />
+          </div>
+
+          {/* Error Message */}
+          <div id="auth-error" class="text-red-600 font-mono text-[10px] hidden uppercase">
+            Invalid credentials.
+          </div>
+
+          <!-- Submit -->
+          <button 
+            type="submit" 
+            id="auth-submit-btn"
+            class="w-full bg-black text-white font-black py-4 uppercase text-xs tracking-widest hover:bg-zinc-950 mt-2 transition-colors"
+          >
+            SIGN IN
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const tabSignin = document.getElementById("tab-signin");
+  const tabSignup = document.getElementById("tab-signup");
+  const fieldName = document.getElementById("field-name");
+  const inputName = document.getElementById("auth-name") as HTMLInputElement | null;
+  const inputEmail = document.getElementById("auth-email") as HTMLInputElement | null;
+  const inputPassword = document.getElementById("auth-password") as HTMLInputElement | null;
+  const errorMsg = document.getElementById("auth-error");
+  const submitBtn = document.getElementById("auth-submit-btn");
+  const form = document.getElementById("auth-form") as HTMLFormElement | null;
+
+  let mode: "signin" | "signup" = "signin";
+
+  function checkUser() {
+    const user = localStorage.getItem("mono_user");
+    if (user) {
+      window.location.href = "/account";
+    }
+  }
+
+  function setMode(newMode: "signin" | "signup") {
+    mode = newMode;
+    if (mode === "signin") {
+      tabSignin?.classList.add("border-black");
+      tabSignin?.classList.remove("text-black/40", "border-transparent");
+      tabSignup?.classList.add("text-black/40", "border-transparent");
+      tabSignup?.classList.remove("border-black");
+
+      fieldName?.classList.add("hidden");
+      if (inputName) inputName.required = false;
+      if (submitBtn) submitBtn.textContent = "SIGN IN";
+    } else {
+      tabSignup?.classList.add("border-black");
+      tabSignup?.classList.remove("text-black/40", "border-transparent");
+      tabSignin?.classList.add("text-black/40", "border-transparent");
+      tabSignin?.classList.remove("border-black");
+
+      fieldName?.classList.remove("hidden");
+      if (inputName) inputName.required = true;
+      if (submitBtn) submitBtn.textContent = "CREATE ACCOUNT";
+    }
+    if (errorMsg) errorMsg.classList.add("hidden");
+  }
+
+  tabSignin?.addEventListener("click", () => setMode("signin"));
+  tabSignup?.addEventListener("click", () => setMode("signup"));
+
+  form?.addEventListener("submit", () => {
+    const email = inputEmail ? inputEmail.value.trim().toLowerCase() : "";
+    const password = inputPassword ? inputPassword.value : "";
+    const name = inputName ? inputName.value.trim() : "";
+
+    if (!email || !password || (mode === "signup" && !name)) return;
+
+    if (mode === "signup") {
+      // Simulate account registration
+      const user = { name, email, points: 150, orderCount: 0 };
+      localStorage.setItem("mono_user", JSON.stringify(user));
+      // Add a welcome message in storage
+      localStorage.setItem("mono_auth_msg", "ACCOUNT CREATED SUCCESSFULLY!");
+      window.location.href = "/account";
+    } else {
+      // Simulate sign in (any credentials will work for demo convenience!)
+      const user = { name: "Avanth", email, points: 420, orderCount: 3 };
+      localStorage.setItem("mono_user", JSON.stringify(user));
+      localStorage.setItem("mono_auth_msg", "WELCOME BACK!");
+      window.location.href = "/account";
+    }
+  });
+
+  checkUser();
+</script>

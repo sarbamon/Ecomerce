@@ -1,0 +1,146 @@
+---
+import JerseySvg from "../_JerseySvg.astro";
+
+const { pattern } = Astro.props;
+---
+<div class="bg-zinc-50 border-b border-black py-8 px-4 flex flex-col items-center justify-center relative select-none">
+  {/* Perspective Badge */}
+  <div class="absolute top-4 left-4 font-mono text-[9px] border border-black/20 px-1.5 py-0.5 rounded-sm uppercase tracking-widest bg-white">
+    Interactive Preview
+  </div>
+
+  {/* SVG Wrapper */}
+  <div class="w-full max-w-[240px] aspect-square flex items-center justify-center my-6">
+    {/* Front View */}
+    <div id="jersey-view-front" class="w-full h-full block">
+      <JerseySvg pattern={pattern} view="front" />
+    </div>
+
+    {/* Back View */}
+    <div id="jersey-view-back" class="w-full h-full hidden">
+      <JerseySvg pattern={pattern} view="back" />
+    </div>
+  </div>
+
+  {/* Toggle View Tabs */}
+  <div class="flex border border-black rounded-none overflow-hidden bg-white">
+    <button 
+      id="btn-view-front"
+      class="px-4 py-2 font-mono text-[10px] tracking-widest bg-black text-white focus:outline-none transition-colors uppercase font-bold"
+    >
+      FRONT
+    </button>
+    <button 
+      id="btn-view-back"
+      class="px-4 py-2 font-mono text-[10px] tracking-widest bg-white text-black hover:bg-zinc-100 focus:outline-none border-l border-black transition-colors uppercase font-bold"
+    >
+      BACK
+    </button>
+  </div>
+</div>
+
+<script>
+  const frontView = document.getElementById("jersey-view-front");
+  const backView = document.getElementById("jersey-view-back");
+  const btnFront = document.getElementById("btn-view-front");
+  const btnBack = document.getElementById("btn-view-back");
+
+  function setView(view: "front" | "back") {
+    if (view === "front") {
+      frontView?.classList.remove("hidden");
+      frontView?.classList.add("block");
+      backView?.classList.remove("block");
+      backView?.classList.add("hidden");
+
+      btnFront?.classList.add("bg-black", "text-white");
+      btnFront?.classList.remove("bg-white", "text-black");
+      btnBack?.classList.add("bg-white", "text-black");
+      btnBack?.classList.remove("bg-black", "text-white");
+    } else {
+      frontView?.classList.remove("block");
+      frontView?.classList.add("hidden");
+      backView?.classList.remove("hidden");
+      backView?.classList.add("block");
+
+      btnFront?.classList.add("bg-white", "text-black");
+      btnFront?.classList.remove("bg-black", "text-white");
+      btnBack?.classList.add("bg-black", "text-white");
+      btnBack?.classList.remove("bg-white", "text-black");
+    }
+  }
+
+  btnFront?.addEventListener("click", () => setView("front"));
+  btnBack?.addEventListener("click", () => setView("back"));
+
+  // Global listeners so detail component inputs can trigger updates
+  window.addEventListener("updateJerseyPreview", (e: any) => {
+    const { name, number, color } = e.detail;
+    
+    // Update front number
+    const frontText = frontView?.querySelector("text");
+    if (frontText) frontText.textContent = number;
+
+    // Update back name and number
+    const backTexts = backView?.querySelectorAll("text");
+    if (backTexts && backTexts.length >= 2) {
+      backTexts[0].textContent = name.toUpperCase() || "MONO";
+      backTexts[1].textContent = number || "10";
+    }
+
+    // Update color dynamically
+    if (color) {
+      // 1. Update pattern fills
+      const patterns = document.querySelectorAll("pattern");
+      patterns.forEach(pat => {
+        const rect = pat.querySelector("rect");
+        if (rect) rect.setAttribute("fill", color);
+        
+        // Grid pattern stroke
+        const path = pat.querySelector("path");
+        if (path) path.setAttribute("stroke", color);
+      });
+
+      // 2. Update solid base fills
+      const basePaths = document.querySelectorAll("svg > g > path:first-child");
+      basePaths.forEach(path => {
+        const fillVal = path.getAttribute("fill");
+        if (fillVal && !fillVal.startsWith("url")) {
+          path.setAttribute("fill", color);
+        }
+      });
+
+      // 3. Update contrast details
+      const isLightColor = color.toLowerCase() === "#ffffff" || 
+                           color.toLowerCase() === "#fafafa" || 
+                           color.toLowerCase() === "#facc15" || 
+                           color.toLowerCase() === "#fda4af";
+      const contrast = isLightColor ? "#000000" : "#ffffff";
+
+      // Chevron
+      const chevrons = document.querySelectorAll("svg path[d*='M 105 200']");
+      chevrons.forEach(ch => ch.setAttribute("fill", contrast));
+      const chevronCollars = document.querySelectorAll("svg path[d*='M 150 60']");
+      chevronCollars.forEach(ch => ch.setAttribute("fill", contrast));
+
+      // Collar / Trims
+      const strokes = document.querySelectorAll("svg path[d*='M 160 60'], svg path[d*='M 40 130'], svg path[d*='M 360 130']");
+      strokes.forEach(s => {
+        s.setAttribute("stroke", contrast);
+      });
+
+      // Texts
+      const texts = document.querySelectorAll("svg text");
+      texts.forEach(t => {
+        t.setAttribute("fill", contrast);
+      });
+    }
+
+    // Automatically switch to back view if user edits name/number so they see it!
+    if (name || number) {
+      // only switch if we were on front
+      if (backView?.classList.contains("hidden")) {
+        setView("back");
+      }
+    }
+  });
+</script>

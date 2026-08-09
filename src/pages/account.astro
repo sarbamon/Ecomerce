@@ -1,0 +1,139 @@
+---
+import Layout from "./_Layout.astro";
+---
+
+<Layout title="JerseySports | Your Account">
+  <div class="px-4 py-8 select-none bg-white min-h-[70vh]">
+    <div class="max-w-md mx-auto">
+      
+      <!-- Welcome Notification -->
+      <div id="auth-welcome" class="hidden mb-6 border border-black p-3 bg-zinc-50 font-mono text-[10px] text-center font-bold tracking-widest uppercase">
+        <!-- Message -->
+      </div>
+
+      <!-- Account Dashboard (Hidden by default until loaded) -->
+      <div id="dashboard-container" class="hidden flex flex-col gap-8">
+        <!-- Header -->
+        <div class="flex justify-between items-start border-b border-black pb-4">
+          <div>
+            <span class="text-[9px] font-mono text-black/40 uppercase tracking-widest font-bold">Dashboard</span>
+            <h2 id="user-name" class="text-3xl font-black uppercase tracking-tight leading-none mt-1">AVANTH</h2>
+            <p id="user-email" class="text-[10px] font-mono text-black/50 lowercase mt-1">avanth@domain.com</p>
+          </div>
+          <button 
+            id="signout-btn" 
+            class="px-3 py-1.5 border border-black text-[9px] font-mono font-bold tracking-wider hover:bg-black hover:text-white transition-colors uppercase"
+          >
+            SIGN OUT
+          </button>
+        </div>
+
+        {/* Loyalty Program Card */}
+        <div class="border border-black p-4 bg-zinc-50 flex items-center justify-between">
+          <div>
+            <h4 class="font-mono text-[9px] font-bold tracking-widest text-black/40 uppercase">Loyalty Tier</h4>
+            <span class="font-bold text-sm tracking-widest uppercase">BLACK MEMBER</span>
+          </div>
+          <div class="text-right">
+            <h4 class="font-mono text-[9px] font-bold tracking-widest text-black/40 uppercase">Points Balance</h4>
+            <span id="user-points" class="font-mono text-lg font-black">420 pts</span>
+          </div>
+        </div>
+
+        {/* Saved Jersey Styles */}
+        <div>
+          <h3 class="font-mono text-xs font-bold uppercase tracking-widest text-black/40 border-b border-black/5 pb-1 mb-3">
+            YOUR SAVED DESIGNS
+          </h3>
+          <div class="flex flex-col gap-3">
+            <div class="border border-black/10 p-3 flex justify-between items-center bg-white hover:border-black transition-colors">
+              <div>
+                <h4 class="font-bold text-xs tracking-tight uppercase">STEALTH BLACK JERSEY</h4>
+                <p class="font-mono text-[9px] text-black/50 uppercase mt-0.5">SIZE: L | NAME: AVANTH | #: 07</p>
+              </div>
+              <a href="/product/m-02" class="font-mono text-[9px] border border-black px-2 py-1 hover:bg-black hover:text-white transition-colors uppercase font-bold">ORDER</a>
+            </div>
+            <div class="border border-black/10 p-3 flex justify-between items-center bg-white hover:border-black transition-colors">
+              <div>
+                <h4 class="font-bold text-xs tracking-tight uppercase">CLASSIC STRIPE JERSEY</h4>
+                <p class="font-mono text-[9px] text-black/50 uppercase mt-0.5">SIZE: L | NAME: CHAMP | #: 10</p>
+              </div>
+              <a href="/product/m-01" class="font-mono text-[9px] border border-black px-2 py-1 hover:bg-black hover:text-white transition-colors uppercase font-bold">ORDER</a>
+            </div>
+          </div>
+        </div>
+
+        {/* Order History */}
+        <div>
+          <h3 class="font-mono text-xs font-bold uppercase tracking-widest text-black/40 border-b border-black/5 pb-1 mb-3">
+            ORDER HISTORY
+          </h3>
+          <div id="order-history-list" class="flex flex-col gap-3">
+            <!-- Dynamically populated or static mock list -->
+            <div class="border border-black/10 p-3 bg-zinc-50/50 font-mono text-[10px] uppercase flex justify-between">
+              <div>
+                <p class="font-bold">Order #JS-294021</p>
+                <p class="text-black/40 mt-0.5">Ordered Aug 09, 2026</p>
+              </div>
+              <div class="text-right">
+                <p class="font-bold text-green-700">DELIVERED</p>
+                <p class="text-black/60 mt-0.5">₹1,890.00</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</Layout>
+
+<script>
+  const welcomeBox = document.getElementById("auth-welcome");
+  const dashboard = document.getElementById("dashboard-container");
+  const nameDisplay = document.getElementById("user-name");
+  const emailDisplay = document.getElementById("user-email");
+  const pointsDisplay = document.getElementById("user-points");
+  const signoutBtn = document.getElementById("signout-btn");
+
+  function loadUser() {
+    const userStr = localStorage.getItem("mono_user");
+    
+    if (!userStr) {
+      window.location.href = "/signin";
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userStr);
+      dashboard?.classList.remove("hidden");
+
+      if (nameDisplay) nameDisplay.textContent = user.name;
+      if (emailDisplay) emailDisplay.textContent = user.email;
+      if (pointsDisplay) pointsDisplay.textContent = `${user.points} pts`;
+
+      // Check for messages
+      const authMsg = localStorage.getItem("mono_auth_msg");
+      if (authMsg && welcomeBox) {
+        welcomeBox.textContent = authMsg;
+        welcomeBox.classList.remove("hidden");
+        // Clear message
+        localStorage.removeItem("mono_auth_msg");
+        setTimeout(() => {
+          welcomeBox.classList.add("hidden");
+        }, 3000);
+      }
+    } catch (e) {
+      console.error(e);
+      window.location.href = "/signin";
+    }
+  }
+
+  signoutBtn?.addEventListener("click", () => {
+    localStorage.removeItem("mono_user");
+    window.location.href = "/signin";
+  });
+
+  loadUser();
+</script>

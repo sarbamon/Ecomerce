@@ -1,0 +1,116 @@
+---
+import { products } from "../../../data/products";
+---
+<div 
+  id="search-overlay" 
+  class="fixed inset-0 bg-white z-50 transform translate-y-full transition-transform duration-300 ease-in-out flex flex-col hidden"
+>
+  <!-- Search Header -->
+  <div class="border-b border-black py-3 px-4 flex items-center justify-between">
+    <span class="font-mono text-xs font-bold uppercase tracking-wider">Search Catalogue</span>
+    <button 
+      id="search-close-btn" 
+      class="p-2 border border-black hover:bg-black hover:text-white transition-colors"
+      aria-label="Close search"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Search Input Container -->
+  <div class="px-4 py-6 border-b border-black bg-zinc-50">
+    <input 
+      type="text" 
+      id="search-input" 
+      placeholder="TYPE TO SEARCH..." 
+      class="w-full bg-white border border-black px-4 py-3 text-sm font-mono tracking-wider focus:outline-none focus:ring-1 focus:ring-black uppercase placeholder:text-black/30"
+    />
+  </div>
+
+  <!-- Results List -->
+  <div id="search-results" class="flex-grow overflow-y-auto px-4 py-6 flex flex-col gap-4">
+    <!-- Dynamically populated -->
+    <div id="search-empty-state" class="text-center py-12 text-xs font-mono text-black/40 uppercase">
+      Start typing to search jerseys...
+    </div>
+  </div>
+</div>
+
+<script define:vars={{ products }}>
+  const overlay = document.getElementById("search-overlay");
+  const openBtn = document.getElementById("search-toggle-btn");
+  const closeBtn = document.getElementById("search-close-btn");
+  const input = document.getElementById("search-input");
+  const resultsContainer = document.getElementById("search-results");
+  const emptyState = document.getElementById("search-empty-state");
+
+  function openSearch() {
+    overlay.classList.remove("hidden");
+    // Small delay to trigger transition smoothly
+    setTimeout(() => {
+      overlay.classList.remove("translate-y-full");
+      input.focus();
+    }, 50);
+  }
+
+  function closeSearch() {
+    overlay.classList.add("translate-y-full");
+    setTimeout(() => {
+      overlay.classList.add("hidden");
+      input.value = "";
+      renderResults("");
+    }, 300);
+  }
+
+  function renderResults(query) {
+    if (!query.trim()) {
+      resultsContainer.innerHTML = "";
+      resultsContainer.appendChild(emptyState);
+      emptyState.textContent = "Start typing to search jerseys...";
+      return;
+    }
+
+    const customList = JSON.parse(localStorage.getItem("custom_products") || "[]");
+    const allProducts = [...products, ...customList];
+
+    const filtered = allProducts.filter(p => 
+      p.name.toLowerCase().includes(query.toLowerCase()) || 
+      p.category.toLowerCase().includes(query.toLowerCase())
+    );
+
+    if (filtered.length === 0) {
+      resultsContainer.innerHTML = "";
+      const noResults = document.createElement("div");
+      noResults.className = "text-center py-12 text-xs font-mono text-black/40 uppercase";
+      noResults.textContent = "No jerseys found matching your search.";
+      resultsContainer.appendChild(noResults);
+      return;
+    }
+
+    resultsContainer.innerHTML = "";
+    filtered.forEach(p => {
+      const a = document.createElement("a");
+      a.href = p.id.startsWith("custom-") ? `/product/custom?id=${p.id}` : `/product/${p.id}`;
+      a.className = "flex items-center justify-between border border-black p-3 hover:bg-black hover:text-white transition-colors group";
+      a.innerHTML = `
+        <div>
+          <span class="text-[9px] font-mono border border-current px-1 py-0.5 rounded-sm uppercase opacity-60">${p.category}</span>
+          <h4 class="font-bold text-sm tracking-tight uppercase mt-1 group-hover:underline">${p.name}</h4>
+        </div>
+        <div class="font-mono text-sm font-bold">₹${p.price}</div>
+      `;
+      resultsContainer.appendChild(a);
+    });
+  }
+
+  // Event Listeners
+  if (openBtn) openBtn.addEventListener("click", openSearch);
+  if (closeBtn) closeBtn.addEventListener("click", closeSearch);
+  if (input) {
+    input.addEventListener("input", (e) => {
+      renderResults(e.target.value);
+    });
+  }
+</script>

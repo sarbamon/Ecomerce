@@ -1,0 +1,253 @@
+---
+const { product } = Astro.props;
+---
+<div class="px-6 py-8 flex flex-col gap-6 select-none bg-white">
+  {/* Header Info */}
+  <div>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="text-[9px] font-mono font-bold border border-black px-1.5 py-0.5 uppercase tracking-widest">
+        {product.category}
+      </span>
+      {product.badge && (
+        <span class="text-[9px] font-mono font-bold bg-black text-white px-1.5 py-0.5 uppercase tracking-widest">
+          {product.badge}
+        </span>
+      )}
+    </div>
+    
+    <h1 class="text-3xl font-black tracking-tight uppercase leading-none">{product.name}</h1>
+    <p class="font-mono text-xl font-bold mt-2">₹{product.price}</p>
+  </div>
+
+  {/* Description */}
+  <p class="text-xs text-black/60 leading-relaxed uppercase font-sans border-t border-black/10 pt-4">
+    {product.description}
+  </p>
+
+  {/* Specifications */}
+  <div class="border-t border-black/10 pt-4">
+    <h4 class="font-mono text-[10px] font-bold tracking-widest text-black/40 uppercase mb-2">Specifications</h4>
+    <ul class="list-disc list-inside font-mono text-[10px] text-black/70 space-y-1 uppercase">
+      {product.features.map((feature: string) => (
+        <li>{feature}</li>
+      ))}
+    </ul>
+  </div>
+
+  {/* Color Selector */}
+  {product.colors && product.colors.length > 0 && (
+    <div class="border-t border-black/10 pt-4">
+      <div class="flex justify-between items-center mb-3">
+        <h4 class="font-mono text-[10px] font-bold tracking-widest text-black/40 uppercase">Select Color</h4>
+        <span id="selected-color-display" class="font-mono text-xs font-bold uppercase">{product.colors[0].name}</span>
+      </div>
+      <div class="flex gap-3">
+        {product.colors.map((color: any, idx: number) => (
+          <button 
+            class={`color-btn w-8 h-8 rounded-full border border-black/20 focus:outline-none transition-transform duration-200 relative ${
+              idx === 0 ? "scale-110 ring-2 ring-black" : "hover:scale-105"
+            }`}
+            style={`background-color: ${color.hex};`}
+            data-color-hex={color.hex}
+            data-color-name={color.name}
+            title={color.name}
+          >
+            {idx === 0 && <span class="absolute inset-1.5 rounded-full border border-white mix-blend-difference"></span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {/* Size Selector */}
+  <div class="border-t border-black/10 pt-4">
+    <div class="flex justify-between items-center mb-3">
+      <h4 class="font-mono text-[10px] font-bold tracking-widest text-black/40 uppercase">Select Size</h4>
+      <span id="selected-size-display" class="font-mono text-xs font-bold uppercase">M</span>
+    </div>
+    <div class="flex gap-2">
+      {["S", "M", "L", "XL", "XXL"].map((size) => (
+        <button 
+          class={`size-btn flex-grow py-3 border border-black text-xs font-mono font-bold uppercase transition-colors ${
+            size === "M" ? "bg-black text-white" : "bg-white text-black hover:bg-zinc-50"
+          }`}
+          data-size={size}
+        >
+          {size}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Customization Section */}
+  <div class="border-t border-black/10 pt-4 bg-zinc-50 p-4 border border-black/5">
+    <h4 class="font-mono text-[10px] font-bold tracking-widest text-black/40 uppercase mb-3">Jersey Customization</h4>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label for="custom-name" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Print Name</label>
+        <input 
+          type="text" 
+          id="custom-name" 
+          maxlength="12" 
+          placeholder="MONO" 
+          class="w-full bg-white border border-black/20 px-3 py-2 text-xs font-mono focus:outline-none focus:border-black uppercase placeholder:text-black/30"
+        />
+      </div>
+      <div>
+        <label for="custom-number" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Print Number</label>
+        <input 
+          type="text" 
+          id="custom-number" 
+          maxlength="2" 
+          placeholder="10" 
+          class="w-full bg-white border border-black/20 px-3 py-2 text-xs font-mono focus:outline-none focus:border-black uppercase placeholder:text-black/30"
+        />
+      </div>
+    </div>
+  </div>
+
+  {/* Add to Cart Action */}
+  <div class="border-t border-black/10 pt-6 flex flex-col gap-2">
+    <button 
+      id="add-to-cart-btn"
+      class="w-full bg-black text-white font-black py-4 uppercase text-sm tracking-widest hover:bg-zinc-950 active:scale-[0.98] transition-all duration-200"
+    >
+      ADD TO CART
+    </button>
+    <a 
+      href="/shop"
+      class="text-center font-mono text-[10px] text-black/50 hover:text-black py-2 tracking-widest uppercase transition-colors"
+    >
+      ← CONTINUE SHOPPING
+    </a>
+  </div>
+</div>
+
+<script define:vars={{ product }}>
+  let selectedSize = "M";
+  let selectedColor = product.colors && product.colors.length > 0 ? product.colors[0].hex : "";
+  
+  const sizeButtons = document.querySelectorAll(".size-btn");
+  const sizeDisplay = document.getElementById("selected-size-display");
+  const colorButtons = document.querySelectorAll(".color-btn");
+  const colorDisplay = document.getElementById("selected-color-display");
+  const nameInput = document.getElementById("custom-name");
+  const numberInput = document.getElementById("custom-number");
+  const addToCartBtn = document.getElementById("add-to-cart-btn");
+
+  // Handle Size selection
+  sizeButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      sizeButtons.forEach(b => {
+        b.classList.remove("bg-black", "text-white");
+        b.classList.add("bg-white", "text-black");
+      });
+      btn.classList.remove("bg-white", "text-black");
+      btn.classList.add("bg-black", "text-white");
+      
+      selectedSize = btn.getAttribute("data-size") || "M";
+      if (sizeDisplay) sizeDisplay.textContent = selectedSize;
+    });
+  });
+
+  // Handle Color selection
+  colorButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      colorButtons.forEach(b => {
+        b.classList.remove("scale-110", "ring-2", "ring-black");
+        b.classList.add("hover:scale-105");
+        const dot = b.querySelector("span");
+        if (dot) dot.remove();
+      });
+
+      btn.classList.add("scale-110", "ring-2", "ring-black");
+      btn.classList.remove("hover:scale-105");
+
+      const span = document.createElement("span");
+      span.className = "absolute inset-1.5 rounded-full border border-white mix-blend-difference";
+      btn.appendChild(span);
+
+      selectedColor = btn.getAttribute("data-color-hex") || "";
+      const colorName = btn.getAttribute("data-color-name") || "";
+      if (colorDisplay) colorDisplay.textContent = colorName;
+
+      emitPreviewUpdate();
+    });
+  });
+
+  // Handle Real-time preview events
+  function emitPreviewUpdate() {
+    const customName = nameInput ? nameInput.value.trim() : "";
+    const customNumber = numberInput ? numberInput.value.trim() : "";
+    
+    // Only permit digits for number
+    if (numberInput && customNumber) {
+      numberInput.value = customNumber.replace(/\D/g, "");
+    }
+
+    const event = new CustomEvent("updateJerseyPreview", {
+      detail: { 
+        name: nameInput ? nameInput.value : "", 
+        number: numberInput ? numberInput.value : "",
+        color: selectedColor
+      }
+    });
+    window.dispatchEvent(event);
+  }
+
+  nameInput?.addEventListener("input", emitPreviewUpdate);
+  numberInput?.addEventListener("input", emitPreviewUpdate);
+
+  // Add to Cart handler
+  addToCartBtn?.addEventListener("click", () => {
+    const name = nameInput ? nameInput.value.trim().toUpperCase() : "";
+    const number = numberInput ? numberInput.value.trim() : "";
+    const colorClean = selectedColor.replace("#", "");
+
+    const cartItem = {
+      cartId: `${product.id}-${selectedSize}-${colorClean}-${name}-${number}`,
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      pattern: product.pattern,
+      size: selectedSize,
+      color: selectedColor,
+      customName: name || "MONO",
+      customNumber: number || "10",
+      quantity: 1
+    };
+
+    try {
+      const cart = JSON.parse(localStorage.getItem("mono_cart") || "[]");
+      const existingIndex = cart.findIndex(item => item.cartId === cartItem.cartId);
+
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += 1;
+      } else {
+        cart.push(cartItem);
+      }
+
+      localStorage.setItem("mono_cart", JSON.stringify(cart));
+      
+      // Notify header to update badge
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // Display minimalist feedback on the button
+      const originalText = addToCartBtn.textContent;
+      addToCartBtn.textContent = "ADDED TO CART ✓";
+      addToCartBtn.classList.remove("bg-black", "text-white");
+      addToCartBtn.classList.add("bg-white", "text-black", "border", "border-black");
+      addToCartBtn.disabled = true;
+
+      setTimeout(() => {
+        addToCartBtn.textContent = originalText;
+        addToCartBtn.classList.remove("bg-white", "text-black", "border", "border-black");
+        addToCartBtn.classList.add("bg-black", "text-white");
+        addToCartBtn.disabled = false;
+      }, 1500);
+
+    } catch (e) {
+      console.error("Failed to add item to cart", e);
+    }
+  });
+</script>

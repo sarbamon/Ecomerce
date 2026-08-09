@@ -1,0 +1,27 @@
+---
+import Layout from "../_Layout.astro";
+import { products } from "../../data/products";
+import Images from "../Product/Images/_Images.astro";
+import ProductDetails from "../Product/_ProductDetails.astro";
+
+// Static paths for all jerseys in mock DB
+export async function getStaticPaths() {
+  return products.map(product => ({
+    params: { id: product.id },
+    props: { product }
+  }));
+}
+
+const { product } = Astro.props;
+---
+
+<Layout title={`JerseySports | ${product.name}`}>
+  {/* Product Detail Page Container */}
+  <div class="max-w-md mx-auto">
+    <!-- Image Preview Block (Interactive) -->
+    <Images pattern={product.pattern} />
+
+    <!-- Details and Actions Block -->
+    <ProductDetails product={product} />
+  </div>
+</Layout>

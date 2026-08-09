@@ -1,0 +1,61 @@
+---
+import JerseySvg from "../../Product/_JerseySvg.astro";
+---
+<section class="bg-black text-white relative overflow-hidden min-h-[85vh] flex flex-col justify-between py-12 px-6">
+  {/* Abstract Background Design lines */}
+  <div class="absolute inset-0 opacity-10 pointer-events-none">
+    <div class="absolute top-0 left-0 w-full h-full bg-[linear-gradient(45deg,#fff_25%,transparent_25%,transparent_75%,#fff_75%,#fff),linear-gradient(45deg,#fff_25%,#000_25%,#000_75%,#fff_75%,#fff)] bg-[size:40px_40px] bg-[position:0_0,20px_20px]"></div>
+  </div>
+
+  <!-- Hero Content -->
+  <div class="relative z-10 flex flex-col items-center text-center mt-6">
+    <span class="text-xs font-mono tracking-[0.3em] bg-white text-black px-2 py-0.5 mb-4 font-bold uppercase rounded-sm">
+      Drop 001 / RAW MONOCHROME
+    </span>
+    
+    <h1 class="text-5xl font-black tracking-tight leading-none uppercase font-sans">
+      STRIPPED OF<br />
+      <span class="text-transparent stroke-text bg-clip-text text-white">ALL COLOR.</span>
+    </h1>
+    
+    <p class="text-xs font-mono text-white/60 max-w-[280px] mt-4 uppercase leading-relaxed tracking-wider">
+      Premium athletic jerseys engineered for style, strength, and simplicity. Pure design. Zero noise.
+    </p>
+  </div>
+
+  <!-- Featured Jersey SVG Display -->
+  <div class="relative z-10 w-full max-w-[280px] mx-auto my-8 animate-bounce-subtle">
+    <JerseySvg pattern="vertical-stripes" view="front" />
+  </div>
+
+  <!-- Primary CTA Button -->
+  <div class="relative z-10 flex flex-col items-center">
+    <a 
+      href="/shop" 
+      class="w-full max-w-xs text-center py-4 bg-white text-black font-black uppercase text-sm tracking-widest hover:bg-black hover:text-white hover:border-white border border-transparent transition-all duration-300"
+    >
+      EXPLORE THE SHOP
+    </a>
+  </div>
+</section>
+
+<style>
+  /* Custom micro-animations & stroke text for premium look */
+  .stroke-text {
+    -webkit-text-stroke: 1.5px #ffffff;
+    color: transparent;
+  }
+  
+  @keyframes bounceSubtle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .animate-bounce-subtle {
+    animation: bounceSubtle 4s ease-in-out infinite;
+  }
+</style>

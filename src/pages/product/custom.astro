@@ -1,0 +1,198 @@
+---
+import Layout from "../_Layout.astro";
+import Images from "../Product/Images/_Images.astro";
+import ProductDetails from "../Product/_ProductDetails.astro";
+---
+
+<Layout title="JerseySports | Custom Jersey View">
+  <div id="custom-product-loading" class="py-24 text-center select-none bg-white">
+    <p class="font-mono text-xs text-black/40 uppercase">Loading product details...</p>
+  </div>
+
+  <div id="custom-product-not-found" class="hidden py-24 text-center select-none bg-white">
+    <p class="font-mono text-xs text-black/40 uppercase">Product not found.</p>
+    <a href="/shop" class="mt-4 inline-block font-mono text-xs border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors uppercase">Shop Catalog</a>
+  </div>
+
+  <div id="custom-product-detail-container" class="max-w-md mx-auto hidden">
+    <!-- Image Preview Block -->
+    <div id="custom-images-container">
+      <Images pattern="solid-white" />
+    </div>
+
+    <!-- Details and Actions Block -->
+    <div id="custom-details-container">
+      <ProductDetails product={{
+        id: "",
+        name: "LOADING...",
+        category: "CUSTOM",
+        price: 0,
+        badge: "",
+        description: "",
+        features: []
+      }} />
+    </div>
+  </div>
+</Layout>
+
+<script>
+  function loadCustomProduct() {
+    const loading = document.getElementById("custom-product-loading");
+    const notFound = document.getElementById("custom-product-not-found");
+    const container = document.getElementById("custom-product-detail-container");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get("id");
+
+    if (!productId) {
+      if (loading) loading.classList.add("hidden");
+      if (notFound) notFound.classList.remove("hidden");
+      return;
+    }
+
+    try {
+      const customList = JSON.parse(localStorage.getItem("custom_products") || "[]");
+      const product = customList.find((p: any) => p.id === productId);
+
+      if (!product) {
+        if (loading) loading.classList.add("hidden");
+        if (notFound) notFound.classList.remove("hidden");
+        return;
+      }
+
+      // Hide loading, show detail container
+      if (loading) loading.classList.add("hidden");
+      if (container) container.classList.remove("hidden");
+
+      // We need to inject the product details into the DOM elements of the imported components.
+      
+      // Update Page Title
+      document.title = `JerseySports | ${product.name}`;
+
+      // Update name, price, badge, category, features, description
+      const detailsHeader = document.querySelector("#custom-details-container");
+      if (detailsHeader) {
+        const titleEl = detailsHeader.querySelector("h1");
+        if (titleEl) titleEl.textContent = product.name;
+
+        const priceEl = detailsHeader.querySelector(".font-mono.text-xl");
+        if (priceEl) priceEl.textContent = `₹${product.price}`;
+
+        const descEl = detailsHeader.querySelector(".text-xs.text-black\\/60");
+        if (descEl) descEl.textContent = product.description;
+
+        const categoryBadge = detailsHeader.querySelector(".text-\\[9px\\]");
+        if (categoryBadge) categoryBadge.textContent = product.category;
+
+        // Custom specs/features
+        const specsList = detailsHeader.querySelector("ul");
+        if (specsList && product.features) {
+          specsList.innerHTML = product.features.map((f: string) => `<li>${f.toUpperCase()}</li>`).join("");
+        }
+
+        // Pass product config variable to the details script scope
+        // Details script handles size and add-to-cart clicks. We can override the click handler or set global variables.
+        // Let's attach product info to the add-to-cart button
+        const cartBtn = document.getElementById("add-to-cart-btn");
+        if (cartBtn) {
+          // Re-bind click event with custom product payload
+          cartBtn.replaceWith(cartBtn.cloneNode(true)); // remove existing listeners
+          const newCartBtn = document.getElementById("add-to-cart-btn");
+          newCartBtn?.addEventListener("click", () => {
+            const sizeDisplay = document.getElementById("selected-size-display");
+            const selectedSize = sizeDisplay ? sizeDisplay.textContent : "M";
+            
+            const nameInput = document.getElementById("custom-name") as HTMLInputElement | null;
+            const numberInput = document.getElementById("custom-number") as HTMLInputElement | null;
+            const name = nameInput ? nameInput.value.trim().toUpperCase() : "";
+            const number = numberInput ? numberInput.value.trim() : "";
+
+            const cartItem = {
+              cartId: `${product.id}-${selectedSize}-${name}-${number}`,
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              pattern: product.pattern,
+              size: selectedSize,
+              customName: name || "MONO",
+              customNumber: number || "10",
+              quantity: 1
+            };
+
+            const cart = JSON.parse(localStorage.getItem("mono_cart") || "[]");
+            const existingIndex = cart.findIndex((item: any) => item.cartId === cartItem.cartId);
+
+            if (existingIndex > -1) {
+              cart[existingIndex].quantity += 1;
+            } else {
+              cart.push(cartItem);
+            }
+
+            localStorage.setItem("mono_cart", JSON.stringify(cart));
+            window.dispatchEvent(new Event("cartUpdated"));
+
+            // Simple click feedback
+            if (newCartBtn) {
+              const originalText = newCartBtn.textContent;
+              newCartBtn.textContent = "ADDED TO CART ✓";
+              newCartBtn.classList.remove("bg-black", "text-white");
+              newCartBtn.classList.add("bg-white", "text-black", "border", "border-black");
+              (newCartBtn as HTMLButtonElement).disabled = true;
+
+              setTimeout(() => {
+                newCartBtn.textContent = originalText;
+                newCartBtn.classList.remove("bg-white", "text-black", "border", "border-black");
+                newCartBtn.classList.add("bg-black", "text-white");
+                (newCartBtn as HTMLButtonElement).disabled = false;
+              }, 1500);
+            }
+          });
+        }
+      }
+
+      // Render the correct preview SVG. We can request a global preview update
+      setTimeout(() => {
+        // Emit preview change with pattern
+        const frontView = document.getElementById("jersey-view-front");
+        const backView = document.getElementById("jersey-view-back");
+
+        // We can replace the SVG preview paths directly.
+        // To make it easy, we will trigger view refresh.
+        // In this custom viewer, we can just replace the SVG code or toggle classes.
+        // Let's rewrite the custom images SVG markup with the correct pattern!
+        const imagesBox = document.getElementById("custom-images-container");
+        if (imagesBox) {
+          // Update SVG fill attributes to match product pattern
+          const svgs = imagesBox.querySelectorAll("svg");
+          svgs.forEach(svg => {
+            const baseJersey = svg.querySelector("path");
+            if (baseJersey) {
+              let fill = "#ffffff";
+              if (product.pattern === "vertical-stripes") fill = "url(#vertical-stripes-pat)";
+              else if (product.pattern === "horizontal-stripes") fill = "url(#horizontal-stripes-pat)";
+              else if (product.pattern === "fine-grid") fill = "url(#fine-grid-pat)";
+              else if (product.pattern === "solid-black" || product.pattern === "chevron-black") fill = "#000000";
+              baseJersey.setAttribute("fill", fill);
+            }
+
+            const chevron = svg.querySelector("path[d*='M 105 200']");
+            if (chevron) {
+              chevron.setAttribute("fill", product.pattern === "chevron-black" ? "#ffffff" : "none");
+            }
+            const chevronCollar = svg.querySelector("path[d*='M 150 60']");
+            if (chevronCollar) {
+              chevronCollar.setAttribute("fill", product.pattern === "chevron-black" ? "#ffffff" : "none");
+            }
+          });
+        }
+      }, 50);
+
+    } catch (e) {
+      console.error(e);
+      if (loading) loading.classList.add("hidden");
+      if (notFound) notFound.classList.remove("hidden");
+    }
+  }
+
+  loadCustomProduct();
+</script>

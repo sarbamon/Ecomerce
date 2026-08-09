@@ -1,17 +1,25 @@
 ---
-
+import Layout from "./_Layout.astro";
+import Hero from "./Home/Hero/_Hero.astro";
+import Categories from "./Home/Categories/_Categories.astro";
+import FeaturedJerseys from "./Home/Featured Jerseys/_FeaturedJerseys.astro";
+import BestSellers from "./Home/Best Sellers/_BestSellers.astro";
+import CTA from "./Home/CTA/_CTA.astro";
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout title="JerseySports | Premium Custom Jerseys">
+  <!-- Hero Section -->
+  <Hero />
+
+  <!-- Categories Grid -->
+  <Categories />
+
+  <!-- Featured Slider -->
+  <FeaturedJerseys />
+
+  <!-- Best Sellers List -->
+  <BestSellers />
+
+  <!-- CTA Banner -->
+  <CTA />
+</Layout>

@@ -1,0 +1,40 @@
+---
+import { categories } from "../../../data/products";
+
+// Get active category from URL search params
+const url = new URL(Astro.request.url);
+const activeCategory = url.searchParams.get("category") || "All";
+---
+<div class="px-4 py-4 border-b border-black overflow-x-auto whitespace-nowrap scrollbar-none bg-zinc-50 sticky top-[53px] z-30">
+  <div class="max-w-md mx-auto flex gap-2">
+    {categories.map((category) => {
+      const isActive = activeCategory.toLowerCase() === category.toLowerCase();
+      const href = category === "All" ? "/shop" : `/shop?category=${category}`;
+      
+      return (
+        <a 
+          href={href}
+          class={`px-4 py-2 text-xs font-mono tracking-widest uppercase transition-colors rounded-none border ${
+            isActive 
+              ? "bg-black text-white border-black" 
+              : "bg-white text-black border-black/10 hover:border-black"
+          }`}
+        >
+          {category}
+        </a>
+      );
+    })}
+  </div>
+</div>
+
+<style>
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .scrollbar-none {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+</style>

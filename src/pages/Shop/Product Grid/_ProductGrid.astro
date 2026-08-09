@@ -1,0 +1,131 @@
+---
+import { products } from "../../../data/products";
+import JerseySvg from "../../Product/_JerseySvg.astro";
+
+const { activeCategory = "All" } = Astro.props;
+
+// Filter products based on active category
+const filteredProducts = activeCategory === "All" 
+  ? products 
+  : products.filter(p => p.category.toLowerCase() === activeCategory.toLowerCase());
+---
+<div class="bg-white">
+  {filteredProducts.length === 0 ? (
+    <div class="py-24 text-center">
+      <p class="font-mono text-xs text-black/40 uppercase">No jerseys available in this collection.</p>
+    </div>
+  ) : (
+    <div id="shop-product-grid" class="grid grid-cols-2 border-b border-black">
+      {filteredProducts.map((product, idx) => (
+        <a 
+          href={`/product/${product.id}`}
+          class={`p-4 flex flex-col justify-between border-black/10 group relative transition-colors duration-200 hover:bg-zinc-50 ${
+            idx % 2 === 0 ? "border-r border-b" : "border-b"
+          }`}
+        >
+          {/* Badge */}
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-[8px] font-mono font-bold tracking-wider border border-black px-1 py-0.5 rounded-sm uppercase">
+              {product.category}
+            </span>
+            <span class="font-mono text-xs font-bold">₹{product.price}</span>
+          </div>
+
+          {/* Svg Image */}
+          <div class="w-full max-w-[130px] mx-auto my-4 group-hover:scale-105 transition-transform duration-300">
+            <JerseySvg pattern={product.pattern} view="front" />
+          </div>
+
+          {/* Title */}
+          <div class="mt-2">
+            <h3 class="font-bold text-xs tracking-tight uppercase group-hover:underline line-clamp-2">
+              {product.name}
+            </h3>
+            {product.badge && (
+              <span class="text-[8px] font-mono text-black/50 block mt-1 tracking-wider">
+                {product.badge}
+              </span>
+            )}
+          </div>
+        </a>
+      ))}
+    </div>
+  )}
+</div>
+
+<script define:vars={{ activeCategory }}>
+  function loadCustomProducts() {
+    const grid = document.getElementById("shop-product-grid");
+    if (!grid) return;
+
+    try {
+      const customList = JSON.parse(localStorage.getItem("custom_products") || "[]");
+      const filtered = activeCategory === "All" 
+        ? customList 
+        : customList.filter(p => p.category.toLowerCase() === activeCategory.toLowerCase());
+
+      filtered.forEach((p, idx) => {
+        // Calculate index for border formatting
+        const totalItemsInStatic = grid.children.length;
+        const index = totalItemsInStatic + idx;
+        const borderClass = index % 2 === 0 ? "border-r border-b" : "border-b";
+
+        const a = document.createElement("a");
+        a.href = `/product/custom?id=${p.id}`;
+        a.className = `p-4 flex flex-col justify-between border-black/10 group relative transition-colors duration-200 hover:bg-zinc-50 ${borderClass}`;
+        
+        // Define SVG patterns directly inline since we can't import JerseySvg inside raw client JS
+        let fill = "#ffffff";
+        if (p.pattern === "vertical-stripes") fill = "url(#vertical-stripes-pat)";
+        else if (p.pattern === "horizontal-stripes") fill = "url(#horizontal-stripes-pat)";
+        else if (p.pattern === "fine-grid") fill = "url(#fine-grid-pat)";
+        else if (p.pattern === "solid-black" || p.pattern === "chevron-black") fill = "#000000";
+
+        const chevronMarkup = p.pattern === "chevron-black" 
+          ? `<path d="M 105 200 L 200 280 L 295 200 L 295 240 L 200 320 L 105 240 Z" fill="#ffffff" />
+             <path d="M 150 60 L 200 120 L 250 60 Z" fill="#ffffff" />`
+          : "";
+
+        a.innerHTML = `
+          <div class="flex justify-between items-start mb-2">
+            <span class="text-[8px] font-mono font-bold tracking-wider border border-black px-1 py-0.5 rounded-sm uppercase">
+              ${p.category}
+            </span>
+            <span class="font-mono text-xs font-bold">₹${p.price}</span>
+          </div>
+
+          <div class="w-full max-w-[130px] mx-auto my-4 group-hover:scale-105 transition-transform duration-300">
+            <svg viewBox="0 0 400 450" class="w-full h-full drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)]" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M 120 60 L 80 100 L 40 130 L 70 180 L 105 150 L 105 390 L 295 390 L 295 150 L 330 180 L 360 130 L 320 100 L 280 60 Z"
+                fill="${fill}"
+                stroke="#000000"
+                stroke-width="8"
+                stroke-linejoin="round"
+              />
+              ${chevronMarkup}
+              <path d="M 160 60 C 160 90, 240 90, 240 60" fill="none" stroke="${p.pattern.includes('black') || p.pattern === 'vertical-stripes' ? '#ffffff' : '#000000'}" stroke-width="6" />
+            </svg>
+          </div>
+
+          <div class="mt-2">
+            <h3 class="font-bold text-xs tracking-tight uppercase group-hover:underline line-clamp-2">
+              ${p.name}
+            </h3>
+            ${p.badge ? `
+              <span class="text-[8px] font-mono text-black/50 block mt-1 tracking-wider">
+                ${p.badge}
+              </span>
+            ` : ""}
+          </div>
+        `;
+        
+        grid.appendChild(a);
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  loadCustomProducts();
+</script>

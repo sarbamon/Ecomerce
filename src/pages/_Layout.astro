@@ -1,0 +1,49 @@
+---
+import Header from "./Layout/Header/_Header.astro";
+import Footer from "./Layout/Footer/_Footer.astro";
+import Search from "./Shop/Search/_Search.astro";
+import "../styles/global.css";
+
+const { title = "JerseySports | Premium Jerseys", fullWidth = false } = Astro.props;
+---
+<html lang="en" class="bg-zinc-100">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    {/* Import Google Fonts */}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style is:global>
+      body {
+        font-family: 'Outfit', sans-serif;
+        background-color: #f4f4f5; /* zinc-100 */
+      }
+      .font-mono {
+        font-family: 'Space Mono', monospace;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex justify-center items-start overflow-y-auto">
+    <!-- Simulator/Full Width Container Wrapper -->
+    <div class={`w-full ${fullWidth ? 'max-w-7xl' : 'max-w-md'} min-h-screen bg-white flex flex-col justify-between relative border-x border-black/10 shadow-2xl`}>
+      <!-- Search Overlay -->
+      <Search />
+
+      <!-- Main Navigation -->
+      <Header />
+
+      <!-- Content Area -->
+      <main class="flex-grow">
+        <slot />
+      </main>
+
+      <!-- Site Footer -->
+      <Footer />
+    </div>
+  </body>
+</html>
