@@ -1,101 +1,116 @@
 export const products = [
   {
+    id: "m-07",
+    name: "GUNNER PINK EDITION",
+    category: "Club",
+    price: 2399,
+    badge: "TRENDING",
+    description: "Sleek pastel pink jersey featuring contrasting black side panels, signature triple shoulder stripes, and the iconic front sponsor emblem.",
+    features: ["100% Recycled Polyester", "Pastel pink and black detailing", "Comfort ribbed neckline", "Signature shoulder stripes"],
+    imageType: "pink-cannon",
+    pattern: "pink-cannon",
+    colors: [
+      { name: "Pastel Pink", hex: "#fbcfe8" },
+      { name: "Monochrome Black", hex: "#18181b" },
+      { name: "Volt Green", hex: "#bef264" }
+    ]
+  },
+  {
     id: "m-01",
-    name: "CLASSIC STRIPE JERSEY",
-    category: "Football",
-    price: 89,
+    name: "ALBICELESTE STRIPE JERSEY",
+    category: "International",
+    price: 1899,
     badge: "BEST SELLER",
-    description: "A timeless striped jersey designed for maximum breathability and style. Features vertical panels and a clean rib-knit V-neck.",
-    features: ["100% Recycled Polyester", "Moisture-wicking dry technology", "Premium embroidered emblem", "Athletic slim fit"],
+    description: "Classic vertical stripes inspired by world champions. Engineered with moisture-wicking technology and premium embroidery.",
+    features: ["100% Recycled Polyester", "Argentine blue and white stripes", "Moisture-wicking dry technology", "Athletic slim fit"],
     imageType: "stripes",
     pattern: "vertical-stripes",
     colors: [
-      { name: "Monochrome", hex: "#000000" },
-      { name: "Crimson Red", hex: "#b91c1c" },
-      { name: "Royal Blue", hex: "#1d4ed8" },
-      { name: "Forest Green", hex: "#15803d" }
+      { name: "Sky Blue & White", hex: "#7dd3fc" },
+      { name: "Midnight Navy", hex: "#0f172a" },
+      { name: "Gold Edition", hex: "#eab308" }
     ]
   },
   {
     id: "m-02",
-    name: "STEALTH BLACK JERSEY",
-    category: "Basketball",
-    price: 95,
+    name: "CANARINHO GOLD JERSEY",
+    category: "International",
+    price: 1999,
     badge: "NEW ARRIVAL",
-    description: "Deep matte fabric with minimalist contrasting piping. Engineered for high performance on the court, offering unrestricted movement.",
-    features: ["Heavyweight mesh fabric", "High-contrast contrast trim", "Breathable side panels", "Ribbed armholes"],
+    description: "Iconic canary yellow body with forest green collar and cuffs. Celebrating football royalty with unrestricted movement.",
+    features: ["Premium honeycomb knit", "Contrasting ribbed collar", "Breathable side mesh panels", "Regular fit"],
     imageType: "stealth",
     pattern: "solid-black",
     colors: [
-      { name: "Stealth Black", hex: "#000000" },
-      { name: "Grape Purple", hex: "#581c87" },
-      { name: "Amber Orange", hex: "#b45309" }
+      { name: "Canary Yellow", hex: "#eab308" },
+      { name: "Forest Green", hex: "#166534" },
+      { name: "Royal Blue", hex: "#1d4ed8" }
     ]
   },
   {
     id: "m-03",
-    name: "RETRO MONO HOOPS",
-    category: "Retro",
-    price: 110,
+    name: "ROSONERI CLASSIC HOOPS",
+    category: "Club",
+    price: 2199,
     badge: "LIMITED EDITION",
-    description: "Horizontal stripes inspired by 90s street fashion. Features an oversized silhouette and a vintage fold-over collar with single button placket.",
-    features: ["Heavyweight vintage cotton blend", "Woven chest patch", "Ribbed knit cuffs", "Oversized retro fit"],
+    description: "Bold red and black stripes, a tribute to European football dominance. Features a vintage polo collar.",
+    features: ["Heavyweight jersey blend", "Embroidered chest patch", "Ribbed knit cuffs", "Oversized retro fit"],
     imageType: "retro-hoops",
-    pattern: "horizontal-stripes",
+    pattern: "vertical-stripes",
     colors: [
-      { name: "Monochrome", hex: "#000000" },
-      { name: "Ocean Teal", hex: "#0f766e" },
-      { name: "Cherry Pink", hex: "#be185d" }
+      { name: "AC Crimson & Black", hex: "#b91c1c" },
+      { name: "Off White & Gold", hex: "#fafafa" },
+      { name: "All Black Stealth", hex: "#18181b" }
     ]
   },
   {
     id: "m-04",
-    name: "CHEVRON PRO JERSEY",
-    category: "Football",
-    price: 99,
+    name: "GALACTICO WHITE JERSEY",
+    category: "Club",
+    price: 2299,
     badge: "PRO EDITION",
-    description: "Features a striking white chevron on a solid base. Designed for ultimate aerodynamics and comfort during elite competitive matches.",
-    features: ["Ultra-lightweight knit fabric", "Laser-cut ventilation holes", "Bonded seams to prevent chafing", "Embraced minimalist crest"],
+    description: "Clean royal white base with metallic gold accents. The choice of champions, built for ultimate comfort and match performance.",
+    features: ["Ultra-lightweight micro-mesh", "Gold heat-pressed vinyl details", "Bonded seams to prevent chafing", "Slim match fit"],
     imageType: "chevron",
-    pattern: "chevron-black",
+    pattern: "solid-white",
     colors: [
-      { name: "Ink Black", hex: "#000000" },
-      { name: "Scarlet Red", hex: "#dc2626" },
-      { name: "Sky Blue", hex: "#0284c7" }
+      { name: "Royal White & Gold", hex: "#ffffff" },
+      { name: "Stealth Purple & Gold", hex: "#6b21a8" },
+      { name: "Navy Blue & Gold", hex: "#1e3a8a" }
     ]
   },
   {
     id: "m-05",
-    name: "CORE WHITE PLAYER JERSEY",
+    name: "BLANCO RED-SLEEVE JERSEY",
     category: "Custom",
-    price: 85,
+    price: 1799,
     badge: "FULLY CUSTOMIZABLE",
-    description: "Pure white canvas jersey waiting for your custom touch. Add your name, select your favorite number, and choose your print style in high-definition.",
-    features: ["Premium matte fabric", "Fully customized heat-press vinyl", "Double-stitched hems", "Regular fit"],
+    description: "Classic red torso with white sleeves. Personalize with your custom name and player number on the front and back.",
+    features: ["Premium matte performance fabric", "Heat-pressed personalization", "Double-stitched hems", "Comfort fit"],
     imageType: "core-white",
-    pattern: "solid-white",
+    pattern: "chevron-black",
     colors: [
-      { name: "Clean White", hex: "#ffffff" },
-      { name: "Neon Yellow", hex: "#facc15" },
-      { name: "Soft Pink", hex: "#fda4af" }
+      { name: "Scarlet Red & White", hex: "#dc2626" },
+      { name: "Retro Green & White", hex: "#15803d" },
+      { name: "Volt Yellow & Black", hex: "#eab308" }
     ]
   },
   {
     id: "m-06",
     name: "GRID PATTERN RETRO",
     category: "Retro",
-    price: 105,
+    price: 1999,
     badge: "VINTAGE COLLECTION",
-    description: "Features a modern grid design inspired by architectural grids. Minimalist, geometric, and styled to transition seamlessly from match to lifestylewear.",
-    features: ["Premium honeycomb jacquard knit", "Subtle grid aesthetic", "Reflective safety piping", "Comfort rib cuffs"],
+    description: "Modern grid design inspired by 90s classic kits. Minimalist, geometric, and styled for both active play and lifestylewear.",
+    features: ["Subtle grid graphic knit", "Contrast black collar", "Reflective safety piping", "Comfort rib cuffs"],
     imageType: "grid",
     pattern: "fine-grid",
     colors: [
       { name: "Architect Gray", hex: "#71717a" },
-      { name: "Navy Blue", hex: "#1e3a8a" },
-      { name: "Off White", hex: "#fafafa" }
+      { name: "Indigo Blue", hex: "#312e81" },
+      { name: "Off White", hex: "#f5f5f4" }
     ]
   }
 ];
 
-export const categories = ["All", "Football", "Basketball", "Retro", "Custom"];
+export const categories = ["All", "Club", "International", "Retro", "Custom"];

@@ -2,13 +2,14 @@
 const { pattern, name = "", number = "", view = "front", color } = Astro.props;
 
 // Determine default fill color based on pattern
-const baseColor = color || (pattern === "solid-white" ? "#ffffff" : "#000000");
+const baseColor = color || (pattern === "solid-white" ? "#ffffff" : pattern === "pink-cannon" ? "#fbcfe8" : "#000000");
 
 // Simple contrast check for light colors in our preset list
 const isLight = baseColor.toLowerCase() === "#ffffff" || 
                 baseColor.toLowerCase() === "#fafafa" || 
                 baseColor.toLowerCase() === "#facc15" || 
-                baseColor.toLowerCase() === "#fda4af";
+                baseColor.toLowerCase() === "#fda4af" ||
+                baseColor.toLowerCase() === "#fbcfe8";
 
 const contrastColor = isLight ? "#000000" : "#ffffff";
 const patId = `pat-${pattern}-${baseColor.replace('#', '')}`;
@@ -66,6 +67,26 @@ const patId = `pat-${pattern}-${baseColor.replace('#', '')}`;
       stroke-width="8"
       stroke-linejoin="round"
     />
+
+    {/* Pink Cannon pattern details (shoulder stripes & side panels) */}
+    {pattern === "pink-cannon" && (
+      <g>
+        {/* Left Side Panel */}
+        <path d="M 105 180 L 105 390 L 125 390 L 125 180 Z" fill="#000000" />
+        {/* Right Side Panel */}
+        <path d="M 295 180 L 295 390 L 275 390 L 275 180 Z" fill="#000000" />
+
+        {/* Shoulder Stripes Left sleeve */}
+        <line x1="100" y1="80" x2="60" y2="120" stroke="#000000" stroke-width="4" />
+        <line x1="90" y1="75" x2="52" y2="113" stroke="#000000" stroke-width="4" />
+        <line x1="110" y1="85" x2="68" y2="127" stroke="#000000" stroke-width="4" />
+
+        {/* Shoulder Stripes Right sleeve */}
+        <line x1="300" y1="80" x2="340" y2="120" stroke="#000000" stroke-width="4" />
+        <line x1="310" y1="75" x2="348" y2="113" stroke="#000000" stroke-width="4" />
+        <line x1="290" y1="85" x2="332" y2="127" stroke="#000000" stroke-width="4" />
+      </g>
+    )}
 
     {/* Chevron pattern specifically */}
     {pattern === "chevron-black" && (
@@ -125,19 +146,57 @@ const patId = `pat-${pattern}-${baseColor.replace('#', '')}`;
         />
 
         {/* Minimalist crest / badge */}
-        <circle 
-          cx="245" cy="125" r="14" 
-          fill="none" 
-          stroke={pattern === "solid-white" || pattern === "fine-grid" ? "#000000" : contrastColor} 
-          stroke-width="4" 
-        />
-        <polygon 
-          points="245,117 251,128 239,128" 
-          fill={pattern === "solid-white" || pattern === "fine-grid" ? "#000000" : contrastColor} 
-        />
+        {pattern === "pink-cannon" ? (
+          /* Custom Cannon Silhouette */
+          <path
+            d="M 233 125 H 255 L 255 129 H 233 Z M 238 129 L 235 134 M 248 129 L 251 134 M 244 121 L 244 125 M 241 123 L 247 123"
+            stroke={contrastColor}
+            stroke-width="3.5"
+            fill="none"
+            stroke-linejoin="round"
+          />
+        ) : (
+          <g>
+            <circle 
+              cx="245" cy="125" r="14" 
+              fill="none" 
+              stroke={pattern === "solid-white" || pattern === "fine-grid" ? "#000000" : contrastColor} 
+              stroke-width="4" 
+            />
+            <polygon 
+              points="245,117 251,128 239,128" 
+              fill={pattern === "solid-white" || pattern === "fine-grid" ? "#000000" : contrastColor} 
+            />
+          </g>
+        )}
+
+        {/* Emirates Sponsor Text Logo */}
+        {pattern === "pink-cannon" && (
+          <g transform="translate(200, 220)" text-anchor="middle">
+            <text
+              font-family="'Times New Roman', Times, serif"
+              font-size="36"
+              font-weight="black"
+              fill={contrastColor}
+              letter-spacing="0.5"
+            >
+              Emirates
+            </text>
+            <text
+              y="28"
+              font-family="'Outfit', sans-serif"
+              font-size="12"
+              font-weight="900"
+              fill={contrastColor}
+              letter-spacing="6"
+            >
+              FLY BETTER
+            </text>
+          </g>
+        )}
         
         {/* Big chest/front number if exists */}
-        {number && (
+        {number && pattern !== "pink-cannon" && (
           <text
             x="200"
             y="250"
