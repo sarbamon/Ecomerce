@@ -1,15 +1,28 @@
 ---
-import { categories } from "../../../data/products";
+import { apiFetch } from "../../../lib/api.js";
 
 // Get active category from URL search params
 const url = new URL(Astro.request.url);
-const activeCategory = url.searchParams.get("category") || "All";
+const activeCategory = url.searchParams.get("category") || "";
+
+let dynamicCategories = [];
+try {
+  const productsData = await apiFetch("/products?limit=4000");
+  const products = productsData.products || [];
+  const uniqueCats = [...new Set(products.map(p => p.category))].filter(Boolean);
+  dynamicCategories = ["ALL", ...uniqueCats];
+} catch (err) {
+  console.error("Failed to fetch dynamic shop categories:", err);
+  dynamicCategories = ["ALL", "Club", "International", "Retro", "Custom"];
+}
 ---
 <div class="px-4 py-4 border-b border-black overflow-x-auto whitespace-nowrap scrollbar-none bg-zinc-50 sticky top-[53px] z-30">
   <div class="max-w-md mx-auto flex gap-2">
-    {categories.map((category) => {
-      const isActive = activeCategory.toLowerCase() === category.toLowerCase();
-      const href = category === "All" ? "/shop" : `/shop?category=${category}`;
+    {dynamicCategories.map((category) => {
+      const isActive = category === "ALL"
+        ? (!activeCategory || activeCategory.toLowerCase() === "all")
+        : (activeCategory.toLowerCase() === category.toLowerCase());
+      const href = category === "ALL" ? "/shop" : `/shop?category=${encodeURIComponent(category)}`;
       
       return (
         <a 

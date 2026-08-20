@@ -1,5 +1,7 @@
 ---
 import Layout from "./_Layout.astro";
+
+const apiURL = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
 ---
 
 <Layout title="JerseySports | Sign In">
@@ -33,7 +35,7 @@ import Layout from "./_Layout.astro";
               type="text" 
               id="auth-name" 
               placeholder="YOUR NAME" 
-              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase placeholder:text-black/30" 
+              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none placeholder:text-black/30" 
             />
           </div>
 
@@ -44,20 +46,22 @@ import Layout from "./_Layout.astro";
               type="email" 
               id="auth-email" 
               required 
-              placeholder="EMAIL@DOMAIN.COM" 
-              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase placeholder:text-black/30" 
+              placeholder="YOUR.EMAIL@GMAIL.COM" 
+              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none placeholder:text-black/30" 
             />
           </div>
 
-          {/* Password Field */}
+          {/* OTP Field */}
           <div>
-            <label for="auth-password" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Password</label>
+            <label for="auth-otp" class="block font-mono text-[9px] text-black/60 uppercase mb-1">One-Time Password (OTP)</label>
             <input 
-              type="password" 
-              id="auth-password" 
+              type="text" 
+              id="auth-otp" 
               required 
-              placeholder="••••••••" 
-              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none placeholder:text-black/30" 
+              maxlength="6"
+              pattern="[0-9]{6}"
+              placeholder="ENTER 6-DIGIT OTP" 
+              class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none placeholder:text-black/30 text-center tracking-widest font-bold" 
             />
           </div>
 
@@ -81,18 +85,18 @@ import Layout from "./_Layout.astro";
   </div>
 </Layout>
 
-<script>
+<script define:vars={{ apiURL }}>
   const tabSignin = document.getElementById("tab-signin");
   const tabSignup = document.getElementById("tab-signup");
   const fieldName = document.getElementById("field-name");
-  const inputName = document.getElementById("auth-name") as HTMLInputElement | null;
-  const inputEmail = document.getElementById("auth-email") as HTMLInputElement | null;
-  const inputPassword = document.getElementById("auth-password") as HTMLInputElement | null;
+  const inputName = document.getElementById("auth-name");
+  const inputEmail = document.getElementById("auth-email");
+  const inputOtp = document.getElementById("auth-otp");
   const errorMsg = document.getElementById("auth-error");
   const submitBtn = document.getElementById("auth-submit-btn");
-  const form = document.getElementById("auth-form") as HTMLFormElement | null;
+  const form = document.getElementById("auth-form");
 
-  let mode: "signin" | "signup" = "signin";
+  let mode = "signin";
 
   function checkUser() {
     const user = localStorage.getItem("mono_user");
@@ -101,7 +105,7 @@ import Layout from "./_Layout.astro";
     }
   }
 
-  function setMode(newMode: "signin" | "signup") {
+  function setMode(newMode) {
     mode = newMode;
     if (mode === "signin") {
       tabSignin?.classList.add("border-black");
@@ -128,26 +132,55 @@ import Layout from "./_Layout.astro";
   tabSignin?.addEventListener("click", () => setMode("signin"));
   tabSignup?.addEventListener("click", () => setMode("signup"));
 
-  form?.addEventListener("submit", () => {
-    const email = inputEmail ? inputEmail.value.trim().toLowerCase() : "";
-    const password = inputPassword ? inputPassword.value : "";
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = inputEmail ? inputEmail.value.trim() : "";
+    const otp = inputOtp ? inputOtp.value.trim() : "";
     const name = inputName ? inputName.value.trim() : "";
 
-    if (!email || !password || (mode === "signup" && !name)) return;
+    if (!email || !otp || (mode === "signup" && !name)) return;
 
-    if (mode === "signup") {
-      // Simulate account registration
-      const user = { name, email, points: 150, orderCount: 0 };
+    const originalText = submitBtn ? submitBtn.textContent : "";
+    if (submitBtn) {
+      submitBtn.textContent = "PROCESSING... ◌";
+      submitBtn.disabled = true;
+    }
+
+    try {
+      const response = await fetch(`${apiURL}/users/auth`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, name: mode === "signup" ? name : undefined })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Authentication failed");
+      }
+
+      const user = data.user;
       localStorage.setItem("mono_user", JSON.stringify(user));
-      // Add a welcome message in storage
-      localStorage.setItem("mono_auth_msg", "ACCOUNT CREATED SUCCESSFULLY!");
+
+      if (mode === "signup") {
+        localStorage.setItem("mono_auth_msg", "ACCOUNT CREATED SUCCESSFULLY!");
+      } else {
+        localStorage.setItem("mono_auth_msg", "WELCOME BACK!");
+      }
+
       window.location.href = "/account";
-    } else {
-      // Simulate sign in (any credentials will work for demo convenience!)
-      const user = { name: "Avanth", email, points: 420, orderCount: 3 };
-      localStorage.setItem("mono_user", JSON.stringify(user));
-      localStorage.setItem("mono_auth_msg", "WELCOME BACK!");
-      window.location.href = "/account";
+    } catch (err) {
+      console.error(err);
+      if (errorMsg) {
+        errorMsg.textContent = err.message || "Failed to authenticate.";
+        errorMsg.classList.remove("hidden");
+      }
+      if (submitBtn) {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
     }
   });
 

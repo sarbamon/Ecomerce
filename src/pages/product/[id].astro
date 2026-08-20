@@ -1,27 +1,103 @@
 ---
 import Layout from "../_Layout.astro";
-import { products } from "../../data/products";
-import Images from "../product/Images/_Images.astro";
+import { apiFetch } from "../../lib/api.js";
 import ProductDetails from "../product/_ProductDetails.astro";
 
-// Static paths for all jerseys in mock DB
 export async function getStaticPaths() {
-  return products.map(product => ({
-    params: { id: product.id },
-    props: { product }
-  }));
+  try {
+    const data = await apiFetch("/products?limit=4000");
+    const productsList = data.products || [];
+
+    return productsList.map((product) => ({
+      params: { id: product.slug },
+      props: { product },
+    }));
+  } catch (err) {
+    console.error("Failed to build product static paths:", err);
+    return [];
+  }
 }
 
 const { product } = Astro.props;
+
+const images = product?.images || [];
+const hasMultipleImages = images.length > 1;
+const primaryImage = images[0] || null;
 ---
 
 <Layout title={`JerseySports | ${product.name}`}>
-  {/* Product Detail Page Container */}
-  <div class="max-w-md mx-auto">
-    <!-- Image Preview Block (Interactive) -->
-    <Images pattern={product.pattern} />
 
-    <!-- Details and Actions Block -->
+  <div class="max-w-md mx-auto">
+
+    <!-- Product Image Gallery -->
+    <div class="w-full bg-white border-b border-black/10 pb-4">
+      <div class="w-full overflow-hidden bg-white aspect-square flex items-center justify-center relative">
+        {primaryImage ? (
+          <img
+            id="main-product-image"
+            src={primaryImage}
+            alt={product.name}
+            class="w-full h-full object-contain block transition-all duration-200"
+            loading="eager"
+            decoding="async"
+          />
+        ) : (
+          <div class="w-full aspect-square bg-gray-100 flex items-center justify-center">
+            <span class="text-gray-500 text-sm">
+              No image available
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Thumbnails list */}
+      {hasMultipleImages && (
+        <div class="flex gap-2 px-4 mt-2 justify-center">
+          {images.map((imgUrl: string, idx: number) => (
+            <button
+              class={`thumbnail-btn w-16 h-16 border-2 overflow-hidden bg-zinc-50 transition-all ${
+                idx === 0 ? "border-black scale-105" : "border-black/10 hover:border-black/45"
+              }`}
+              data-img-url={imgUrl}
+            >
+              <img src={imgUrl} alt={`Preview ${idx + 1}`} class="w-full h-full object-cover pointer-events-none" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <!-- Product Details -->
     <ProductDetails product={product} />
+
   </div>
+
+  <script>
+    const mainImg = document.getElementById("main-product-image") as HTMLImageElement | null;
+    const thumbnailBtns = document.querySelectorAll(".thumbnail-btn");
+
+    thumbnailBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const newUrl = btn.getAttribute("data-img-url");
+        if (mainImg && newUrl) {
+          // Smooth fade transition
+          mainImg.style.opacity = "0.2";
+          
+          setTimeout(() => {
+            mainImg.src = newUrl;
+            mainImg.style.opacity = "1";
+          }, 150);
+
+          // Update active styles
+          thumbnailBtns.forEach(b => {
+            b.classList.remove("border-black", "scale-105");
+            b.classList.add("border-black/10");
+          });
+          btn.classList.add("border-black", "scale-105");
+          btn.classList.remove("border-black/10");
+        }
+      });
+    });
+  </script>
+
 </Layout>

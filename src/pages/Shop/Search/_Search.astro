@@ -1,5 +1,5 @@
 ---
-import { products } from "../../../data/products";
+const apiURL = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
 ---
 <div 
   id="search-overlay" 
@@ -38,7 +38,7 @@ import { products } from "../../../data/products";
   </div>
 </div>
 
-<script define:vars={{ products }}>
+<script define:vars={{ apiURL }}>
   const overlay = document.getElementById("search-overlay");
   const openBtn = document.getElementById("search-toggle-btn");
   const closeBtn = document.getElementById("search-close-btn");
@@ -64,7 +64,7 @@ import { products } from "../../../data/products";
     }, 300);
   }
 
-  function renderResults(query) {
+  async function renderResults(query) {
     if (!query.trim()) {
       resultsContainer.innerHTML = "";
       resultsContainer.appendChild(emptyState);
@@ -72,37 +72,42 @@ import { products } from "../../../data/products";
       return;
     }
 
-    const customList = JSON.parse(localStorage.getItem("custom_products") || "[]");
-    const allProducts = [...products, ...customList];
+    try {
+      const response = await fetch(`${apiURL}/products?search=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      const filtered = data.products || [];
 
-    const filtered = allProducts.filter(p => 
-      p.name.toLowerCase().includes(query.toLowerCase()) || 
-      p.category.toLowerCase().includes(query.toLowerCase())
-    );
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = "";
+        const noResults = document.createElement("div");
+        noResults.className = "text-center py-12 text-xs font-mono text-black/40 uppercase";
+        noResults.textContent = "No jerseys found matching your search.";
+        resultsContainer.appendChild(noResults);
+        return;
+      }
 
-    if (filtered.length === 0) {
       resultsContainer.innerHTML = "";
-      const noResults = document.createElement("div");
-      noResults.className = "text-center py-12 text-xs font-mono text-black/40 uppercase";
-      noResults.textContent = "No jerseys found matching your search.";
-      resultsContainer.appendChild(noResults);
-      return;
+      filtered.forEach(p => {
+        const a = document.createElement("a");
+        a.href = `/product/${p.slug}`;
+        a.className = "flex items-center justify-between border border-black p-3 hover:bg-black hover:text-white transition-colors group";
+        a.innerHTML = `
+          <div>
+            <span class="text-[9px] font-mono border border-current px-1 py-0.5 rounded-sm uppercase opacity-60">${p.category}</span>
+            <h4 class="font-bold text-sm tracking-tight uppercase mt-1 group-hover:underline">${p.name}</h4>
+          </div>
+          <div class="font-mono text-sm font-bold">₹${p.price}</div>
+        `;
+        resultsContainer.appendChild(a);
+      });
+    } catch (err) {
+      console.error(err);
+      resultsContainer.innerHTML = "";
+      const errorDiv = document.createElement("div");
+      errorDiv.className = "text-center py-12 text-xs font-mono text-red-600 uppercase";
+      errorDiv.textContent = "Search failed. Backend offline.";
+      resultsContainer.appendChild(errorDiv);
     }
-
-    resultsContainer.innerHTML = "";
-    filtered.forEach(p => {
-      const a = document.createElement("a");
-      a.href = p.id.startsWith("custom-") ? `/product/custom?id=${p.id}` : `/product/${p.id}`;
-      a.className = "flex items-center justify-between border border-black p-3 hover:bg-black hover:text-white transition-colors group";
-      a.innerHTML = `
-        <div>
-          <span class="text-[9px] font-mono border border-current px-1 py-0.5 rounded-sm uppercase opacity-60">${p.category}</span>
-          <h4 class="font-bold text-sm tracking-tight uppercase mt-1 group-hover:underline">${p.name}</h4>
-        </div>
-        <div class="font-mono text-sm font-bold">₹${p.price}</div>
-      `;
-      resultsContainer.appendChild(a);
-    });
   }
 
   // Event Listeners

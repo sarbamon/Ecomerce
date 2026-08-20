@@ -162,28 +162,102 @@ import Layout from "./_Layout.astro";
     e.target.value = e.target.value.replace(/\D/g, "");
   });
 
-  // Calculate order total
-  function loadTotal() {
+  const apiURL = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
+  let deliveryCharge = 0;
+  let customDeliveryCharge = 0;
+
+  async function fetchCharges() {
     try {
+      const res = await fetch(`${apiURL}/homepage`);
+      const data = await res.json();
+      if (res.ok && data.homepage) {
+        deliveryCharge = data.homepage.deliveryCharge || 0;
+        customDeliveryCharge = data.homepage.customDeliveryCharge || 0;
+      }
+    } catch (e) {
+      console.error("Failed to load delivery charges", e);
+    }
+  }
+
+  // Calculate order total
+  async function loadTotal() {
+    try {
+      await fetchCharges();
       const cart = JSON.parse(localStorage.getItem("mono_cart") || "[]");
-      if (cart.length === 0 && !successContainer?.classList.contains("hidden")) {
+      if (cart.length === 0 && (!successContainer || successContainer.classList.contains("hidden"))) {
         // Empty cart, go back to cart page
         window.location.href = "/cart";
         return;
       }
-      const total = cart.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
-      if (amountDisplay) amountDisplay.textContent = `₹${total.toFixed(2)}`;
+      const subtotal = cart.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+      const isAnyCustomized = cart.some((item: any) => item.isCustomized === true);
+      const charge = isAnyCustomized ? customDeliveryCharge : deliveryCharge;
+      const finalTotal = subtotal + charge;
+
+      if (amountDisplay) amountDisplay.textContent = `₹${finalTotal.toFixed(2)}`;
     } catch (e) {
       console.error(e);
     }
   }
 
   // Handle Checkout submission
-  form?.addEventListener("submit", (e) => {
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
     
     // Simple validation check
     if (!form.checkValidity()) return;
+
+    const placeBtn = document.getElementById("place-order-btn");
+    const originalText = placeBtn ? placeBtn.textContent : "";
+    if (placeBtn) {
+      placeBtn.textContent = "PROCESSING ORDER... ◌";
+      (placeBtn as HTMLButtonElement).disabled = true;
+    }
+
+    try {
+      const cart = JSON.parse(localStorage.getItem("mono_cart") || "[]");
+      const subtotal = cart.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
+      const isAnyCustomized = cart.some((item: any) => item.isCustomized === true);
+      const charge = isAnyCustomized ? customDeliveryCharge : deliveryCharge;
+      const finalTotal = subtotal + charge;
+
+      // Update backend stock
+      try {
+        const purchaseItems = cart.map((item: any) => ({
+          id: item.id,
+          size: item.size,
+          quantity: item.quantity
+        }));
+
+        await fetch(`${apiURL}/products/purchase`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ items: purchaseItems })
+        });
+      } catch (err) {
+        console.error("Failed to update stock:", err);
+      }
+
+      const orderNumber = "JS-" + Math.floor(100000 + Math.random() * 900000);
+      const orderDate = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+
+      const newOrder = {
+        orderId: orderNumber,
+        date: orderDate,
+        status: "PROCESSING",
+        amount: finalTotal,
+        shippingCharge: charge,
+        items: cart
+      };
+
+      const existingOrders = JSON.parse(localStorage.getItem("mono_orders") || "[]");
+      existingOrders.unshift(newOrder);
+      localStorage.setItem("mono_orders", JSON.stringify(existingOrders));
+    } catch (err) {
+      console.error("Failed to save order:", err);
+    }
 
     // Simulate success
     localStorage.removeItem("mono_cart");
@@ -191,6 +265,11 @@ import Layout from "./_Layout.astro";
 
     formContainer?.classList.add("hidden");
     successContainer?.classList.remove("hidden");
+
+    if (placeBtn) {
+      placeBtn.textContent = originalText;
+      (placeBtn as HTMLButtonElement).disabled = false;
+    }
   });
 
   loadTotal();

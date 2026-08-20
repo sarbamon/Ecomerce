@@ -1,16 +1,23 @@
 ---
-import { products } from "../../../data/products";
+import { apiFetch } from "../../../lib/api.js";
 import JerseySvg from "../../product/_JerseySvg.astro";
 
-// Get first 3 products as featured
-const featured = products.slice(0, 3);
+const { title = "FEATURED", subtitle = "New Drops" } = Astro.props;
+
+let featured = [];
+try {
+  const data = await apiFetch("/products/featured");
+  featured = data.products || [];
+} catch (error) {
+  console.error("Failed to load featured products:", error);
+}
 ---
 <section class="bg-black text-white py-16 px-4 border-b border-white/20 overflow-hidden">
   <div class="max-w-md mx-auto">
     <div class="flex items-end justify-between mb-8">
       <div>
-        <span class="text-xs font-mono text-white/50 uppercase tracking-widest font-bold">New Drops</span>
-        <h2 class="text-3xl font-black uppercase tracking-tight">FEATURED</h2>
+        <span class="text-[10px] font-mono text-white/50 uppercase tracking-widest font-bold">{subtitle}</span>
+        <h2 class="text-2xl font-black uppercase tracking-tight mt-0.5">{title}</h2>
       </div>
       <a href="/shop" class="text-xs font-mono tracking-widest hover:text-white/60 transition-colors uppercase border-b border-white pb-0.5">
         VIEW ALL
@@ -21,7 +28,7 @@ const featured = products.slice(0, 3);
     <div class="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-none">
       {featured.map((jersey) => (
         <a 
-          href={`/product/${jersey.id}`}
+          href={`/product/${jersey.slug}`}
           class="min-w-[85%] bg-zinc-950 border border-white/10 rounded-sm p-4 snap-center flex flex-col justify-between group active:border-white transition-all duration-300"
         >
           {/* Badge */}
@@ -29,12 +36,21 @@ const featured = products.slice(0, 3);
             <span class="text-[9px] font-mono font-bold tracking-widest bg-white text-black px-1.5 py-0.5 rounded-sm uppercase">
               {jersey.badge}
             </span>
-            <span class="font-mono text-sm font-semibold">₹{jersey.price}</span>
+            <div class="flex items-center gap-2 font-mono text-sm font-semibold">
+              <span>₹{jersey.price}</span>
+              {jersey.compareAtPrice && jersey.compareAtPrice > jersey.price && (
+                <span class="text-xs text-white/40 line-through">₹{jersey.compareAtPrice}</span>
+              )}
+            </div>
           </div>
 
-          {/* Jersey SVG Preview */}
+          {/* Jersey SVG Preview / Picture URL */}
           <div class="w-full max-w-[180px] mx-auto my-6 group-hover:scale-105 transition-transform duration-300">
-            <JerseySvg pattern={jersey.pattern} view="front" />
+            {jersey.images && jersey.images[0] && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(jersey.images[0]) ? (
+              <img src={jersey.images[0]} alt={jersey.name} class="w-full h-[180px] object-contain mx-auto" />
+            ) : (
+              <JerseySvg pattern={jersey.images && jersey.images[0] || "solid-white"} view="front" />
+            )}
           </div>
 
           {/* Info */}

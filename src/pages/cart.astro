@@ -35,7 +35,7 @@ import Layout from "./_Layout.astro";
           </div>
           <div class="flex justify-between">
             <span class="text-black/60 uppercase">Shipping</span>
-            <span class="font-bold text-green-700 uppercase">FREE</span>
+            <span id="summary-shipping" class="font-bold text-green-700 uppercase">FREE</span>
           </div>
         </div>
 
@@ -60,6 +60,23 @@ import Layout from "./_Layout.astro";
   const cartSummary = document.getElementById("cart-summary");
   const subtotalDisplay = document.getElementById("summary-subtotal");
   const totalDisplay = document.getElementById("summary-total");
+
+  const apiURL = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
+  let deliveryCharge = 0;
+  let customDeliveryCharge = 0;
+
+  async function fetchCharges() {
+    try {
+      const res = await fetch(`${apiURL}/homepage`);
+      const data = await res.json();
+      if (res.ok && data.homepage) {
+        deliveryCharge = data.homepage.deliveryCharge || 0;
+        customDeliveryCharge = data.homepage.customDeliveryCharge || 0;
+      }
+    } catch (e) {
+      console.error("Failed to load delivery charges", e);
+    }
+  }
 
   function renderCart() {
     if (!cartList) return;
@@ -88,16 +105,25 @@ import Layout from "./_Layout.astro";
       cart.forEach((item: any) => {
         subtotal += item.price * item.quantity;
 
+        const isUploadedImage = item.pattern && item.pattern.startsWith("http");
+        let previewMarkup = "";
+        if (isUploadedImage) {
+          previewMarkup = `<img src="${item.pattern}" alt="${item.name}" class="w-full h-full object-contain" />`;
+        } else {
+          previewMarkup = `
+            <div class="text-center select-none scale-[0.3]">
+              <div class="font-mono text-[10px] font-black uppercase text-black leading-none truncate w-24">${item.customName}</div>
+              <div class="font-bold text-[32px] text-black leading-none">${item.customNumber}</div>
+            </div>
+          `;
+        }
+
         const div = document.createElement("div");
         div.className = "flex items-center gap-4 border border-black p-3 bg-white";
         div.innerHTML = `
           <!-- Mini preview of jersey representation based on pattern -->
           <div class="w-16 h-16 flex-shrink-0 bg-zinc-50 border border-black/5 p-1 relative flex items-center justify-center">
-            <!-- Custom back details preview -->
-            <div class="text-center select-none scale-[0.3]">
-              <div class="font-mono text-[10px] font-black uppercase text-black leading-none truncate w-24">${item.customName}</div>
-              <div class="font-bold text-[32px] text-black leading-none">${item.customNumber}</div>
-            </div>
+            ${previewMarkup}
           </div>
 
           <!-- Info -->
@@ -109,12 +135,8 @@ import Layout from "./_Layout.astro";
               </div>
               <p class="text-[9px] font-mono text-black/50 uppercase mt-0.5 flex items-center gap-1.5 flex-wrap">
                 <span>SIZE: ${item.size}</span>
-                <span>|</span>
-                <span class="flex items-center gap-1">COLOR: <span class="w-2.5 h-2.5 rounded-full border border-black/20 inline-block" style="background-color: ${item.color || '#000000'}"></span></span>
-                <span>|</span>
-                <span>NAME: ${item.customName}</span>
-                <span>|</span>
-                <span>#: ${item.customNumber}</span>
+                ${item.customName && item.customName !== "MONO" ? `<span>|</span><span>NAME: ${item.customName}</span>` : ""}
+                ${item.customNumber && item.customNumber !== "10" ? `<span>|</span><span>#: ${item.customNumber}</span>` : ""}
               </p>
             </div>
 
@@ -136,8 +158,22 @@ import Layout from "./_Layout.astro";
       });
 
       // Update Summary displays
+      const isAnyCustomized = cart.some((item: any) => item.isCustomized === true);
+      const charge = isAnyCustomized ? customDeliveryCharge : deliveryCharge;
+
+      const shippingDisplay = document.getElementById("summary-shipping");
+      if (shippingDisplay) {
+        if (charge === 0) {
+          shippingDisplay.textContent = "FREE";
+          shippingDisplay.className = "font-bold text-green-700 uppercase";
+        } else {
+          shippingDisplay.textContent = `₹${charge.toFixed(2)}`;
+          shippingDisplay.className = "font-bold text-black uppercase";
+        }
+      }
+
       if (subtotalDisplay) subtotalDisplay.textContent = `₹${subtotal.toFixed(2)}`;
-      if (totalDisplay) totalDisplay.textContent = `₹${subtotal.toFixed(2)}`;
+      if (totalDisplay) totalDisplay.textContent = `₹${(subtotal + charge).toFixed(2)}`;
 
       // Attach button events
       attachEvents();
@@ -206,5 +242,7 @@ import Layout from "./_Layout.astro";
   }
 
   // Initial Run
-  renderCart();
+  fetchCharges().then(() => {
+    renderCart();
+  });
 </script>

@@ -1,51 +1,135 @@
 ---
 import JerseySvg from "../../product/_JerseySvg.astro";
+
+const { data = [] } = Astro.props;
+
+// Fallback default slide if no slides exist in DB
+const defaultSlides = [
+  {
+    imageUrl: "vertical-stripes",
+    eyebrow: "SEASON DROPS",
+    title: "STRIPPED OF ALL COLOR.",
+    description: "Premium athletic jerseys engineered for style, strength, and simplicity. Pure design. Zero noise.",
+    buttonText: "EXPLORE THE SHOP",
+    buttonLink: "/shop",
+    isActive: true
+  }
+];
+
+const activeSlides = data.length > 0 ? data.filter((s: any) => s.isActive) : defaultSlides;
 ---
-<section class="bg-black text-white relative overflow-hidden min-h-[85vh] flex flex-col justify-between py-12 px-6">
+<section id="hero-slider" class="bg-black text-white relative overflow-hidden min-h-[85vh] flex flex-col justify-between py-12 px-6">
   {/* Abstract Background Design lines */}
   <div class="absolute inset-0 opacity-10 pointer-events-none">
     <div class="absolute top-0 left-0 w-full h-full bg-[linear-gradient(45deg,#fff_25%,transparent_25%,transparent_75%,#fff_75%,#fff),linear-gradient(45deg,#fff_25%,#000_25%,#000_75%,#fff_75%,#fff)] bg-[size:40px_40px] bg-[position:0_0,20px_20px]"></div>
   </div>
 
-  <!-- Hero Content -->
-  <div class="relative z-10 flex flex-col items-center text-center mt-6">
-    <span class="text-xs font-mono tracking-[0.3em] bg-white text-black px-2 py-0.5 mb-4 font-bold uppercase rounded-sm">
-      Drop 001 / RAW MONOCHROME
-    </span>
-    
-    <h1 class="text-5xl font-black tracking-tight leading-none uppercase font-sans">
-      STRIPPED OF<br />
-      <span class="text-transparent stroke-text bg-clip-text text-white">ALL COLOR.</span>
-    </h1>
-    
-    <p class="text-xs font-mono text-white/60 max-w-[280px] mt-4 uppercase leading-relaxed tracking-wider">
-      Premium athletic jerseys engineered for style, strength, and simplicity. Pure design. Zero noise.
-    </p>
+  <div class="hero-slides-container flex-grow flex flex-col justify-between relative min-h-[70vh]">
+    {activeSlides.map((slide: any, index: number) => {
+      const pattern = slide.imageUrl;
+      const isCustomImage = pattern && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(pattern);
+      
+      return (
+        <div class={`hero-slide flex flex-col justify-between h-full absolute inset-0 transition-all duration-700 flex flex-col items-center justify-between ${index === 0 ? 'opacity-100 z-10 scale-100' : 'opacity-0 z-0 scale-95 pointer-events-none'}`} data-index={index}>
+          <!-- Hero Content -->
+          <div class="relative z-10 flex flex-col items-center text-center mt-6">
+            <span class="text-[9px] font-mono tracking-[0.3em] bg-white text-black px-2 py-0.5 mb-4 font-bold uppercase rounded-sm">
+              {slide.eyebrow}
+            </span>
+            
+            <h1 class="text-4xl font-black tracking-tight leading-tight uppercase font-sans mt-2">
+              {slide.title}
+            </h1>
+            
+            <p class="text-[10px] font-mono text-white/60 max-w-[280px] mt-4 uppercase leading-relaxed tracking-wider">
+              {slide.description}
+            </p>
+          </div>
+
+          <!-- Featured Jersey Display -->
+          <div class="relative z-10 w-full max-w-[240px] mx-auto my-6 animate-bounce-subtle">
+            {isCustomImage ? (
+              <img src={pattern} alt={slide.title} class="w-full h-[240px] object-contain mx-auto drop-shadow-[0_10px_20px_rgba(0,0,0,0.25)]" />
+            ) : (
+              <JerseySvg pattern={pattern || "vertical-stripes"} view="front" />
+            )}
+          </div>
+
+          <!-- Primary CTA Button -->
+          <div class="relative z-10 flex flex-col items-center w-full">
+            <a 
+              href={slide.buttonLink || "/shop"} 
+              class="w-full max-w-xs text-center py-4 bg-white text-black font-black uppercase text-xs tracking-widest hover:bg-black hover:text-white hover:border-white border border-transparent transition-all duration-300"
+            >
+              {slide.buttonText || "SHOP NOW"}
+            </a>
+          </div>
+        </div>
+      );
+    })}
   </div>
 
-  <!-- Featured Jersey SVG Display -->
-  <div class="relative z-10 w-full max-w-[280px] mx-auto my-8 animate-bounce-subtle">
-    <JerseySvg pattern="vertical-stripes" view="front" />
-  </div>
-
-  <!-- Primary CTA Button -->
-  <div class="relative z-10 flex flex-col items-center">
-    <a 
-      href="/shop" 
-      class="w-full max-w-xs text-center py-4 bg-white text-black font-black uppercase text-sm tracking-widest hover:bg-black hover:text-white hover:border-white border border-transparent transition-all duration-300"
-    >
-      EXPLORE THE SHOP
-    </a>
-  </div>
+  {/* Slider dots indicators if multiple slides */}
+  {activeSlides.length > 1 && (
+    <div class="flex justify-center gap-2 mt-6 relative z-20">
+      {activeSlides.map((_: any, index: number) => (
+        <button 
+          class={`slide-dot w-2 h-2 rounded-full border border-white transition-colors duration-300 ${index === 0 ? 'bg-white' : 'bg-transparent'}`}
+          data-index={index}
+        />
+      ))}
+    </div>
+  )}
 </section>
 
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    const slides = document.querySelectorAll(".hero-slide");
+    const dots = document.querySelectorAll(".slide-dot");
+    let currentIdx = 0;
+    const total = slides.length;
+
+    if (total <= 1) return;
+
+    function showSlide(idx: number) {
+      slides.forEach((slide, i) => {
+        if (i === idx) {
+          slide.classList.remove("opacity-0", "z-0", "scale-95", "pointer-events-none");
+          slide.classList.add("opacity-100", "z-10", "scale-100");
+        } else {
+          slide.classList.remove("opacity-100", "z-10", "scale-100");
+          slide.classList.add("opacity-0", "z-0", "scale-95", "pointer-events-none");
+        }
+      });
+
+      dots.forEach((dot, i) => {
+        if (i === idx) {
+          dot.classList.add("bg-white");
+          dot.classList.remove("bg-transparent");
+        } else {
+          dot.classList.remove("bg-white");
+          dot.classList.add("bg-transparent");
+        }
+      });
+      currentIdx = idx;
+    }
+
+    dots.forEach(dot => {
+      dot.addEventListener("click", () => {
+        const idx = parseInt(dot.getAttribute("data-index") || "0", 10);
+        showSlide(idx);
+      });
+    });
+
+    // Auto rotate every 6 seconds
+    setInterval(() => {
+      const next = (currentIdx + 1) % total;
+      showSlide(next);
+    }, 6000);
+  });
+</script>
+
 <style>
-  /* Custom micro-animations & stroke text for premium look */
-  .stroke-text {
-    -webkit-text-stroke: 1.5px #ffffff;
-    color: transparent;
-  }
-  
   @keyframes bounceSubtle {
     0%, 100% {
       transform: translateY(0);

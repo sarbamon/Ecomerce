@@ -1,5 +1,7 @@
 ---
 import Layout from "./_Layout.astro";
+
+const apiURL = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
 ---
 
 <Layout title="JerseySports | Your Account">
@@ -18,7 +20,7 @@ import Layout from "./_Layout.astro";
           <div>
             <span class="text-[9px] font-mono text-black/40 uppercase tracking-widest font-bold">Dashboard</span>
             <h2 id="user-name" class="text-3xl font-black uppercase tracking-tight leading-none mt-1">AVANTH</h2>
-            <p id="user-email" class="text-[10px] font-mono text-black/50 lowercase mt-1">avanth@domain.com</p>
+            <p id="user-email" class="text-[10px] font-mono text-black/50 mt-1">avanth@gmail.com</p>
           </div>
           <button 
             id="signout-btn" 
@@ -28,15 +30,28 @@ import Layout from "./_Layout.astro";
           </button>
         </div>
 
-        {/* Loyalty Program Card */}
-        <div class="border border-black p-4 bg-zinc-50 flex items-center justify-between">
-          <div>
-            <h4 class="font-mono text-[9px] font-bold tracking-widest text-black/40 uppercase">Loyalty Tier</h4>
-            <span class="font-bold text-sm tracking-widest uppercase">BLACK MEMBER</span>
-          </div>
-          <div class="text-right">
-            <h4 class="font-mono text-[9px] font-bold tracking-widest text-black/40 uppercase">Points Balance</h4>
-            <span id="user-points" class="font-mono text-lg font-black">420 pts</span>
+
+
+        {/* Edit Profile Form */}
+        <div class="border border-black p-4 bg-white flex flex-col gap-3">
+          <h4 class="font-mono text-[9px] font-bold tracking-widest text-black/40 uppercase border-b border-black/5 pb-1 font-bold">Update Profile Details</h4>
+          <form id="edit-profile-form" class="flex flex-col gap-3" onsubmit="event.preventDefault();">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label for="edit-name" class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Name</label>
+                <input type="text" id="edit-name" required class="w-full bg-white border border-black px-2 py-1 text-xs font-mono focus:outline-none" />
+              </div>
+              <div>
+                <label for="edit-email" class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Email Address</label>
+                <input type="email" id="edit-email" required class="w-full bg-white border border-black px-2 py-1 text-xs font-mono focus:outline-none" />
+              </div>
+            </div>
+            <button type="submit" class="w-full bg-black text-white font-mono text-[9px] font-bold py-2 uppercase tracking-widest hover:bg-zinc-950 transition-colors">
+              SAVE CHANGES
+            </button>
+          </form>
+          <div id="profile-toast" class="hidden text-green-700 font-mono text-[9px] text-center uppercase font-bold">
+            Changes saved successfully!
           </div>
         </div>
 
@@ -66,20 +81,10 @@ import Layout from "./_Layout.astro";
         {/* Order History */}
         <div>
           <h3 class="font-mono text-xs font-bold uppercase tracking-widest text-black/40 border-b border-black/5 pb-1 mb-3">
-            ORDER HISTORY
+            ORDER HISTORY & TRACKING
           </h3>
           <div id="order-history-list" class="flex flex-col gap-3">
-            <!-- Dynamically populated or static mock list -->
-            <div class="border border-black/10 p-3 bg-zinc-50/50 font-mono text-[10px] uppercase flex justify-between">
-              <div>
-                <p class="font-bold">Order #JS-294021</p>
-                <p class="text-black/40 mt-0.5">Ordered Aug 09, 2026</p>
-              </div>
-              <div class="text-right">
-                <p class="font-bold text-green-700">DELIVERED</p>
-                <p class="text-black/60 mt-0.5">₹1,890.00</p>
-              </div>
-            </div>
+            <!-- Dynamically populated orders -->
           </div>
         </div>
 
@@ -89,13 +94,142 @@ import Layout from "./_Layout.astro";
   </div>
 </Layout>
 
-<script>
+<script define:vars={{ apiURL }}>
   const welcomeBox = document.getElementById("auth-welcome");
   const dashboard = document.getElementById("dashboard-container");
   const nameDisplay = document.getElementById("user-name");
   const emailDisplay = document.getElementById("user-email");
-  const pointsDisplay = document.getElementById("user-points");
   const signoutBtn = document.getElementById("signout-btn");
+
+  const editForm = document.getElementById("edit-profile-form");
+  const editName = document.getElementById("edit-name");
+  const editEmail = document.getElementById("edit-email");
+  const profileToast = document.getElementById("profile-toast");
+  const orderList = document.getElementById("order-history-list");
+
+  function renderOrders() {
+    if (!orderList) return;
+    try {
+      const orders = JSON.parse(localStorage.getItem("mono_orders") || "[]");
+      if (orders.length === 0) {
+        orderList.innerHTML = `
+          <div class="border border-black/10 p-4 text-center font-mono text-[10px] text-black/40 uppercase">
+            No orders placed yet
+          </div>
+        `;
+        return;
+      }
+
+      orderList.innerHTML = orders.map((order) => {
+        let badgeStyle = "text-amber-700 bg-amber-50 border-amber-200";
+        if (order.status === "SHIPPING TRANSIT") {
+          badgeStyle = "text-blue-700 bg-blue-50 border-blue-200";
+        } else if (order.status === "DELIVERED") {
+          badgeStyle = "text-indigo-700 bg-indigo-50 border-indigo-200";
+        } else if (order.status === "FINISHED") {
+          badgeStyle = "text-green-700 bg-green-50 border-green-200";
+        } else if (order.status === "CANCELLED") {
+          badgeStyle = "text-red-700 bg-red-50 border-red-200";
+        }
+
+        // Live tracking milestones configuration
+        let progressWidth = 0;
+        let s1 = "bg-black text-white border-black";
+        let s2 = "bg-white text-black/35 border-black/10";
+        let s3 = "bg-white text-black/35 border-black/10";
+        let s4 = "bg-white text-black/35 border-black/10";
+        let s5 = "bg-white text-black/35 border-black/10";
+
+        if (order.status === "SHIPPING TRANSIT") {
+          progressWidth = 50;
+          s2 = "bg-black text-white border-black";
+          s3 = "bg-black text-white border-black";
+        } else if (order.status === "DELIVERED" || order.status === "FINISHED") {
+          progressWidth = 100;
+          s2 = "bg-black text-white border-black";
+          s3 = "bg-black text-white border-black";
+          s4 = "bg-black text-white border-black";
+          s5 = "bg-black text-white border-black";
+        }
+
+        return `
+          <div class="order-card border border-black/10 p-3 bg-zinc-50/50 font-mono text-[10px] uppercase flex flex-col gap-2 cursor-pointer transition-all hover:border-black hover:bg-white select-none">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="font-bold">Order #${order.orderId}</p>
+                <p class="text-black/40 mt-0.5">Ordered ${order.date}</p>
+              </div>
+              <div class="text-right">
+                <span class="font-bold border px-1.5 py-0.5 rounded-sm text-[8px] tracking-wider ${badgeStyle}">${order.status}</span>
+                <p class="text-black/60 mt-1">₹${order.amount.toFixed(2)}</p>
+              </div>
+            </div>
+            ${order.items ? `
+              <div class="border-t border-black/5 pt-2 flex flex-col gap-1 text-[9px] text-black/60">
+                ${order.items.map((item) => `
+                  <div class="flex justify-between">
+                    <span>${item.name} (${item.size}) x${item.quantity}</span>
+                    <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            <!-- Expandable Tracking Progress Section -->
+            <div class="order-tracking-details mt-4 border-t border-black/5 pt-3.5 hidden">
+              <div class="flex justify-between items-center text-[8px] font-bold text-black/45 tracking-wider mb-2">
+                <span>ORDER TRACKING</span>
+                <span class="text-black font-extrabold text-right">STATUS: ${order.status}</span>
+              </div>
+              <div class="flex items-center justify-between relative mt-2 mb-1.5 px-0.5">
+                <!-- Connect Line -->
+                <div class="absolute left-4 right-4 top-[10px] h-[1.5px] bg-zinc-200 -z-10"></div>
+                <div class="absolute left-4 top-[10px] h-[1.5px] bg-black -z-10 transition-all duration-500" style="width: ${progressWidth}%"></div>
+
+                <!-- Placed -->
+                <div class="flex flex-col items-center gap-1 flex-1">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 ${s1}">1</span>
+                  <span class="text-[6.5px] text-center font-bold tracking-tight">PLACED</span>
+                </div>
+                <!-- Guwahati Hub -->
+                <div class="flex flex-col items-center gap-1 flex-1">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 ${s2}">2</span>
+                  <span class="text-[6.5px] text-center font-bold tracking-tight text-nowrap">GHY HUB</span>
+                </div>
+                <!-- Diphu Hub -->
+                <div class="flex flex-col items-center gap-1 flex-1">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 ${s3}">3</span>
+                  <span class="text-[6.5px] text-center font-bold tracking-tight text-nowrap">DIPHU HUB</span>
+                </div>
+                <!-- Near You -->
+                <div class="flex flex-col items-center gap-1 flex-1">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 ${s4}">4</span>
+                  <span class="text-[6.5px] text-center font-bold tracking-tight text-nowrap">NEAR YOU</span>
+                </div>
+                <!-- Delivered -->
+                <div class="flex flex-col items-center gap-1 flex-1">
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 ${s5}">5</span>
+                  <span class="text-[6.5px] text-center font-bold tracking-tight">DELIVERED</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Bind toggle detail handler
+      document.querySelectorAll(".order-card").forEach(card => {
+        card.addEventListener("click", () => {
+          const trackingSec = card.querySelector(".order-tracking-details");
+          if (trackingSec) {
+            trackingSec.classList.toggle("hidden");
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Failed to render orders:", e);
+    }
+  }
 
   function loadUser() {
     const userStr = localStorage.getItem("mono_user");
@@ -111,7 +245,11 @@ import Layout from "./_Layout.astro";
 
       if (nameDisplay) nameDisplay.textContent = user.name;
       if (emailDisplay) emailDisplay.textContent = user.email;
-      if (pointsDisplay) pointsDisplay.textContent = `${user.points} pts`;
+
+      if (editName) editName.value = user.name;
+      if (editEmail) editEmail.value = user.email;
+
+      renderOrders();
 
       // Check for messages
       const authMsg = localStorage.getItem("mono_auth_msg");
@@ -129,6 +267,64 @@ import Layout from "./_Layout.astro";
       window.location.href = "/signin";
     }
   }
+
+  editForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!editName || !editEmail) return;
+
+    const submitBtn = editForm.querySelector("button[type='submit']");
+    const originalText = submitBtn ? submitBtn.textContent : "";
+    if (submitBtn) {
+      submitBtn.textContent = "SAVING... ◌";
+      submitBtn.disabled = true;
+    }
+
+    try {
+      const userStr = localStorage.getItem("mono_user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const originalEmail = user.email;
+
+        const response = await fetch(`${apiURL}/users/profile`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            originalEmail,
+            name: editName.value.trim().toUpperCase(),
+            email: editEmail.value.trim()
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to update profile");
+        }
+
+        const updatedUser = data.user;
+        localStorage.setItem("mono_user", JSON.stringify(updatedUser));
+
+        if (nameDisplay) nameDisplay.textContent = updatedUser.name;
+        if (emailDisplay) emailDisplay.textContent = updatedUser.email;
+
+        if (profileToast) {
+          profileToast.classList.remove("hidden");
+          setTimeout(() => {
+            profileToast.classList.add("hidden");
+          }, 2000);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save changes:", err);
+    } finally {
+      if (submitBtn) {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+  });
 
   signoutBtn?.addEventListener("click", () => {
     localStorage.removeItem("mono_user");

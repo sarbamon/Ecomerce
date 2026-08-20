@@ -9,34 +9,42 @@ const { pattern } = Astro.props;
     Interactive Preview
   </div>
 
-  {/* SVG Wrapper */}
+  {/* SVG Wrapper / Real Image */}
   <div class="w-full max-w-[240px] aspect-square flex items-center justify-center my-6">
-    {/* Front View */}
-    <div id="jersey-view-front" class="w-full h-full block">
-      <JerseySvg pattern={pattern} view="front" />
-    </div>
+    {pattern && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(pattern) ? (
+      <img src={pattern} alt="Jersey Picture" class="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)]" />
+    ) : (
+      <>
+        {/* Front View */}
+        <div id="jersey-view-front" class="w-full h-full block">
+          <JerseySvg pattern={pattern} view="front" />
+        </div>
 
-    {/* Back View */}
-    <div id="jersey-view-back" class="w-full h-full hidden">
-      <JerseySvg pattern={pattern} view="back" />
-    </div>
+        {/* Back View */}
+        <div id="jersey-view-back" class="w-full h-full hidden">
+          <JerseySvg pattern={pattern} view="back" />
+        </div>
+      </>
+    )}
   </div>
 
   {/* Toggle View Tabs */}
-  <div class="flex border border-black rounded-none overflow-hidden bg-white">
-    <button 
-      id="btn-view-front"
-      class="px-4 py-2 font-mono text-[10px] tracking-widest bg-black text-white focus:outline-none transition-colors uppercase font-bold"
-    >
-      FRONT
-    </button>
-    <button 
-      id="btn-view-back"
-      class="px-4 py-2 font-mono text-[10px] tracking-widest bg-white text-black hover:bg-zinc-100 focus:outline-none border-l border-black transition-colors uppercase font-bold"
-    >
-      BACK
-    </button>
-  </div>
+  {!(pattern && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(pattern)) && (
+    <div class="flex border border-black rounded-none overflow-hidden bg-white">
+      <button 
+        id="btn-view-front"
+        class="px-4 py-2 font-mono text-[10px] tracking-widest bg-black text-white focus:outline-none transition-colors uppercase font-bold"
+      >
+        FRONT
+      </button>
+      <button 
+        id="btn-view-back"
+        class="px-4 py-2 font-mono text-[10px] tracking-widest bg-white text-black hover:bg-zinc-100 focus:outline-none border-l border-black transition-colors uppercase font-bold"
+      >
+        BACK
+      </button>
+    </div>
+  )}
 </div>
 
 <script>

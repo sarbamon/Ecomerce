@@ -1,33 +1,67 @@
 ---
-import { categories } from "../../../data/products";
+import JerseySvg from "../../product/_JerseySvg.astro";
 
-// Displaying sleek category selections
+const { data = [] } = Astro.props;
+
+const defaultCategories = [
+  {
+    name: "Club Jerseys",
+    imageUrl: "vertical-stripes",
+    link: "/shop?category=Club"
+  },
+  {
+    name: "International",
+    imageUrl: "chevron-black",
+    link: "/shop?category=International"
+  },
+  {
+    name: "Retro Edits",
+    imageUrl: "fine-grid",
+    link: "/shop?category=Retro"
+  }
+];
+
+const list = data.length > 0 ? data : defaultCategories;
 ---
 <section class="bg-white py-12 px-4 border-b border-black">
   <div class="max-w-md mx-auto">
     <div class="flex flex-col mb-8">
       <span class="text-xs font-mono text-black/40 uppercase tracking-widest font-bold">Categories</span>
-      <h2 class="text-2xl font-black uppercase tracking-tight">FIND YOUR SPORT</h2>
+      <h2 class="text-2xl font-black uppercase tracking-tight">FIND YOUR STYLE</h2>
     </div>
 
     <!-- Category Grid -->
     <div class="grid grid-cols-2 gap-3">
-      {categories.filter(c => c !== "All").map((category) => (
-        <a 
-          href={`/shop?category=${category}`}
-          class="relative border border-black p-6 group overflow-hidden bg-white text-black hover:bg-black hover:text-white transition-all duration-300 flex flex-col justify-between aspect-square"
-        >
-          <div class="font-mono text-xs text-black/30 group-hover:text-white/30 transition-colors uppercase">
-            Collection
-          </div>
-          <div>
-            <h3 class="text-xl font-bold uppercase tracking-tight">{category}</h3>
-            <span class="inline-block mt-2 text-xs font-mono tracking-widest group-hover:translate-x-1 transition-transform duration-300">
-              BROWSE →
-            </span>
-          </div>
-        </a>
-      ))}
+      {list.map((category: any) => {
+        const pattern = category.imageUrl;
+        const isCustomImage = pattern && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(pattern);
+
+        return (
+          <a 
+            href={category.link || "/shop"}
+            class="relative border border-black p-6 group overflow-hidden bg-white text-black hover:bg-black hover:text-white transition-all duration-300 flex flex-col justify-between aspect-square"
+          >
+            {/* Visual element placeholder or small pattern preview */}
+            <div class="absolute right-4 bottom-4 w-16 h-16 opacity-10 group-hover:opacity-20 transition-opacity duration-300 pointer-events-none">
+              {isCustomImage ? (
+                <img src={pattern} alt={category.name} class="w-full h-full object-contain" />
+              ) : (
+                <JerseySvg pattern={pattern || "solid-white"} view="front" />
+              )}
+            </div>
+
+            <div class="font-mono text-[9px] text-black/30 group-hover:text-white/30 transition-colors uppercase z-10">
+              Collection
+            </div>
+            <div class="z-10">
+              <h3 class="text-base font-black uppercase tracking-tight leading-tight">{category.name}</h3>
+              <span class="inline-block mt-2 text-[9px] font-mono tracking-widest group-hover:translate-x-1 transition-transform duration-300">
+                BROWSE →
+              </span>
+            </div>
+          </a>
+        );
+      })}
     </div>
   </div>
 </section>

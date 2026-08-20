@@ -1,29 +1,66 @@
 ---
 import Layout from "./_Layout.astro";
+import { apiFetch } from "../lib/api.js";
+
 import Hero from "./Home/Hero/_Hero.astro";
 import Promotion from "./Home/Promotion/_Promotion.astro";
 import Categories from "./Home/Categories/_Categories.astro";
 import FeaturedJerseys from "./Home/Featured Jerseys/_FeaturedJerseys.astro";
 import BestSellers from "./Home/Best Sellers/_BestSellers.astro";
 import CTA from "./Home/CTA/_CTA.astro";
+
+let homepageData = null;
+let dynamicCategories = [];
+
+try {
+  const data = await apiFetch("/homepage");
+  homepageData = data.homepage;
+} catch (err) {
+  console.error("Failed to fetch homepage CMS data:", err);
+}
+
+try {
+  const productsData = await apiFetch("/products?limit=4000");
+  const products = productsData.products || [];
+  const uniqueCats = [...new Set(products.map(p => p.category))].filter(Boolean);
+  
+  dynamicCategories = uniqueCats.map(cat => {
+    const customCat = (homepageData?.categories || []).find(c => c.name.toLowerCase().trim() === cat.toLowerCase().trim());
+    return {
+      name: cat,
+      imageUrl: customCat?.imageUrl || "solid-white",
+      link: `/shop?category=${encodeURIComponent(cat)}`
+    };
+  });
+} catch (err) {
+  console.error("Failed to fetch dynamic categories:", err);
+}
 ---
 
 <Layout title="JerseySports | Premium Custom Jerseys">
+
   <!-- Hero Section -->
-  <Hero />
+  <Hero data={homepageData?.heroSlides || []} />
 
   <!-- Promotion Banner Grid -->
-  <Promotion />
+  <Promotion data={homepageData?.promotions || []} />
 
   <!-- Categories Grid -->
-  <Categories />
+  <Categories data={dynamicCategories} />
 
   <!-- Featured Slider -->
-  <FeaturedJerseys />
+  <FeaturedJerseys
+    title={homepageData?.sectionHeadings?.featured?.title}
+    subtitle={homepageData?.sectionHeadings?.featured?.subtitle}
+  />
 
   <!-- Best Sellers List -->
-  <BestSellers />
+  <BestSellers
+    title={homepageData?.sectionHeadings?.bestsellers?.title}
+    subtitle={homepageData?.sectionHeadings?.bestsellers?.subtitle}
+  />
 
   <!-- CTA Banner -->
-  <CTA />
+  <CTA data={homepageData?.cta} />
+
 </Layout>

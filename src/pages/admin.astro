@@ -1,379 +1,1789 @@
 ---
 import Layout from "./_Layout.astro";
-import { categories, products } from "../data/products";
+import { categories } from "../data/products";
 
-// Full-screen Admin Portal Page with Analytics
+const apiURL = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
 ---
 
-<Layout title="JerseySports | Admin Dashboard" fullWidth={true}>
-  <div class="px-6 py-10 select-none bg-white min-h-[80vh]">
-    <!-- Simulator Warning (Shown only on small screens) -->
-    <div class="block lg:hidden text-center py-16 px-4 flex flex-col items-center justify-center min-h-[50vh]">
-      <div class="w-12 h-12 border border-black flex items-center justify-center font-mono text-lg font-black mb-4">!</div>
-      <span class="text-[9px] font-mono text-black/40 uppercase tracking-widest font-bold">Access Restricted</span>
-      <h2 class="text-xl font-black uppercase mt-1">DESKTOP REQUIRED</h2>
-      <p class="font-mono text-[9px] text-black/60 uppercase mt-4 max-w-[240px] leading-relaxed">
-        The administrative console requires a screen resolution of 1024px or wider for full dashboard grid layouts.
-      </p>
-      <a 
-        href="/" 
-        class="mt-6 px-6 py-2.5 border border-black font-mono text-[10px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
-      >
-        RETURN HOME
-      </a>
+<Layout title="JerseySports Console | Admin" fullWidth={true}>
+  <!-- Style overrides for native selects -->
+  <style is:global>
+    select, select option {
+      color: #000000 !important;
+      background-color: #ffffff !important;
+    }
+  </style>
+
+  <!-- External Resources -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800&family=Archivo+Narrow:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- Admin Login Sec (Visible until authorization) -->
+  <div id="admin-login-sec" class="max-w-md mx-auto w-full py-24 px-4 flex flex-col gap-6 selection:bg-black selection:text-white font-mono">
+    <div class="flex flex-col border-b border-black pb-4 mb-2">
+      <span class="text-[9px] text-black/40 uppercase tracking-widest font-bold font-mono">Console Authorization</span>
+      <h2 class="text-3xl font-black uppercase tracking-tight leading-none mt-1 font-sans">ADMIN PORTAL</h2>
     </div>
 
-    <!-- Authorized Desktop Container -->
-    <div class="hidden lg:flex flex-col gap-8 w-full max-w-6xl mx-auto">
-      
-      <!-- Admin Login State -->
-      <div id="admin-login-sec" class="max-w-md mx-auto w-full py-12 flex flex-col gap-6">
-        <div class="flex flex-col border-b border-black pb-4 mb-4">
-          <span class="text-[9px] font-mono text-black/40 uppercase tracking-widest font-bold">Restricted Area</span>
-          <h2 class="text-3xl font-black uppercase tracking-tight leading-none mt-1">ADMIN PORTAL</h2>
-        </div>
-
-        <form id="admin-login-form" class="flex flex-col gap-4" onsubmit="event.preventDefault();">
-          <div>
-            <label for="admin-pin" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Enter Admin PIN</label>
-            <input 
-              type="password" 
-              id="admin-pin" 
-              placeholder="••••" 
-              required 
-              maxlength="6"
-              class="w-full bg-white border border-black px-3 py-2 text-center text-lg font-mono focus:outline-none tracking-widest" 
-            />
-          </div>
-          <div id="login-error" class="text-red-600 font-mono text-[10px] hidden uppercase text-center">
-            Access Denied. Incorrect PIN.
-          </div>
-          <button 
-            type="submit" 
-            class="w-full bg-black text-white font-black py-3.5 uppercase text-xs tracking-widest hover:bg-zinc-950 transition-colors"
-          >
-            AUTHORIZE
-          </button>
-        </form>
+    <form id="admin-login-form" class="flex flex-col gap-4" onsubmit="event.preventDefault();">
+      <div>
+        <label for="admin-username" class="block text-[9px] text-black/60 uppercase mb-1 font-bold">Username</label>
+        <input 
+          type="text" 
+          id="admin-username" 
+          placeholder="ADMIN" 
+          required 
+          class="w-full bg-white border border-black px-3 py-2 text-xs focus:outline-none rounded-none" 
+        />
       </div>
+      <div>
+        <label for="admin-password" class="block text-[9px] text-black/60 uppercase mb-1 font-bold">Password</label>
+        <input 
+          type="password" 
+          id="admin-password" 
+          placeholder="••••••••" 
+          required 
+          class="w-full bg-white border border-black px-3 py-2 text-xs focus:outline-none rounded-none" 
+        />
+      </div>
+      <div id="login-error" class="text-red-600 font-bold text-[10px] hidden uppercase text-center">
+        Access Denied. Invalid credentials.
+      </div>
+      <button 
+        type="submit" 
+        class="w-full bg-black text-white font-black py-3.5 uppercase text-xs tracking-widest hover:bg-zinc-950 transition-colors rounded-none"
+      >
+        AUTHORIZE
+      </button>
+    </form>
+  </div>
 
-      <!-- Admin Panel Actions (Hidden until login) -->
-      <div id="admin-panel-sec" class="hidden flex flex-col gap-8 w-full">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center border-b border-black pb-4">
-          <div>
-            <span class="text-[9px] font-mono text-black/40 uppercase tracking-widest font-bold">Administrative Dashboard</span>
-            <h1 class="text-4xl font-black uppercase tracking-tight leading-none mt-1">JERSEYSPORTS CONSOLE</h1>
+  <!-- Admin Panel Dashboard Wrapper (Hidden until login) -->
+  <div id="admin-panel-sec" class="hidden min-h-screen w-full flex bg-slate-50 text-black selection:bg-black selection:text-white">
+    
+    <!-- Left Sidebar -->
+    <aside class="bg-white docked left-0 h-screen w-64 border-r border-black fixed left-0 top-0 flex flex-col pt-6 z-50 select-none">
+      <div class="px-6 mb-8">
+        <h2 class="font-sans text-2xl font-black text-black uppercase tracking-tight">CONSOLE</h2>
+        <span class="font-mono text-[8px] text-black/40 uppercase tracking-widest block mt-1 font-bold">ADMINISTRATIVE DASHBOARD</span>
+      </div>
+      
+      <nav class="flex-grow flex flex-col gap-1">
+        <a id="nav-dashboard" class="flex items-center gap-4 bg-black text-white font-bold px-6 py-3 border-r-4 border-transparent transition-all cursor-pointer font-mono" href="#">
+          <span class="material-symbols-outlined text-[20px]">dashboard</span>
+          <span class="text-[10px] uppercase tracking-wider">Dashboard</span>
+        </a>
+        <a id="nav-inventory" class="flex items-center gap-4 text-black/60 hover:text-black px-6 py-3 hover:bg-zinc-100 transition-all border-r-4 border-transparent hover:border-black cursor-pointer font-mono" href="#">
+          <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+          <span class="text-[10px] uppercase tracking-wider">Inventory</span>
+        </a>
+        <a id="nav-orders" class="flex items-center gap-4 text-black/60 hover:text-black px-6 py-3 hover:bg-zinc-100 transition-all border-r-4 border-transparent hover:border-black cursor-pointer font-mono" href="#">
+          <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+          <span class="text-[10px] uppercase tracking-wider">Orders</span>
+        </a>
+        <a id="nav-cms" class="flex items-center gap-4 text-black/60 hover:text-black px-6 py-3 hover:bg-zinc-100 transition-all border-r-4 border-transparent hover:border-black cursor-pointer font-mono" href="#">
+          <span class="material-symbols-outlined text-[20px]">settings</span>
+          <span class="text-[10px] uppercase tracking-wider">CMS Settings</span>
+        </a>
+      </nav>
+      
+      <div class="p-6 border-t border-black/10">
+        <button id="admin-lock-btn" class="w-full border border-black hover:bg-black hover:text-white text-black font-bold py-3 transition-colors uppercase tracking-widest text-[9px] flex items-center justify-center gap-2 font-mono">
+          <span class="material-symbols-outlined text-[16px]">logout</span>
+          LOG OUT
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow ml-64 min-h-screen flex flex-col bg-zinc-50/50">
+      
+      <!-- Top Navigation -->
+      <nav class="bg-white border-b border-black/15 flex justify-between items-center w-full px-8 py-4 sticky top-0 z-40">
+        <div class="flex items-center gap-4 select-none">
+          <span class="font-sans text-xl font-extrabold tracking-tighter text-black uppercase">JERSEY SPORTS</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 border border-green-700/25 px-3 py-1 bg-green-50">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span>
+            <span class="font-mono text-[9px] text-green-700 uppercase font-bold tracking-wider">LIVE SYNC ACTIVE</span>
           </div>
-          <div class="flex items-center gap-3">
-            <span class="font-mono text-xs text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 uppercase font-bold">● Live Sync Active</span>
-            <button 
-              id="admin-lock-btn" 
-              class="px-4 py-2 border border-black text-xs font-mono font-bold tracking-wider hover:bg-black hover:text-white transition-colors uppercase"
-            >
-              LOCK CONSOLE
-            </button>
+        </div>
+      </nav>
+
+      <!-- Main Dashboard Scrollable Content -->
+      <div class="w-full px-8 py-8 flex flex-col gap-6">
+
+        <!-- 1. SECTION: DASHBOARD (Default Tab View) -->
+        <div id="sec-dashboard" class="flex flex-col gap-6">
+          <header class="flex flex-col justify-between select-none">
+            <h1 class="font-sans text-3xl font-black text-black uppercase">OVERVIEW</h1>
+          </header>
+
+          <!-- Metrics Row -->
+          <div class="grid grid-cols-4 gap-4">
+            <div class="bg-white border border-black/10 p-5 flex flex-col justify-between min-h-[110px] hover:bg-zinc-50/50 transition-colors">
+              <span class="font-mono text-[9px] text-black/40 uppercase tracking-wider font-bold">TOTAL SALES REVENUE</span>
+              <div class="flex items-end justify-between mt-auto">
+                <span id="stat-revenue" class="font-sans text-xl font-bold text-black">₹0</span>
+                <span class="font-mono text-[9px] text-green-600 font-bold bg-green-50 px-1 py-0.5 border border-green-100">+24.2%</span>
+              </div>
+            </div>
+            <div class="bg-white border border-black/10 p-5 flex flex-col justify-between min-h-[110px] hover:bg-zinc-50/50 transition-colors">
+              <span class="font-mono text-[9px] text-black/40 uppercase tracking-wider font-bold">ACTIVE ORDERS</span>
+              <div class="flex items-end justify-between mt-auto">
+                <span id="stat-orders" class="font-sans text-xl font-bold text-black">0 items</span>
+                <span class="font-mono text-[9px] text-green-600 font-bold bg-green-50 px-1 py-0.5 border border-green-100">+12.5%</span>
+              </div>
+            </div>
+            <div class="bg-white border border-black/10 p-5 flex flex-col justify-between min-h-[110px] hover:bg-zinc-50/50 transition-colors">
+              <span class="font-mono text-[9px] text-black/40 uppercase tracking-wider font-bold">CONVERSION RATE</span>
+              <div class="flex items-end justify-between mt-auto">
+                <span id="stat-conversion" class="font-sans text-xl font-bold text-black">0.00%</span>
+                <span class="font-mono text-[9px] text-black/40 font-bold bg-zinc-100 px-1 py-0.5 border border-zinc-200">Stable</span>
+              </div>
+            </div>
+            <div class="bg-white border border-black/10 p-5 flex flex-col justify-between min-h-[110px] hover:bg-zinc-50/50 transition-colors">
+              <span class="font-mono text-[9px] text-black/40 uppercase tracking-wider font-bold">AVERAGE ORDER VAL</span>
+              <div class="flex items-end justify-between mt-auto">
+                <span id="stat-average-val" class="font-sans text-xl font-bold text-black">₹0</span>
+                <span class="font-mono text-[9px] text-green-600 font-bold bg-green-50 px-1 py-0.5 border border-green-100">+4.8%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="border border-black/10 p-5 bg-white flex flex-col gap-2">
+              <h4 class="font-mono text-xs font-black uppercase tracking-wider border-b border-black/10 pb-2 mb-2">TOP SELLING PRODUCTS</h4>
+              <div class="h-[200px] relative">
+                <canvas id="bestsellers-chart"></canvas>
+              </div>
+            </div>
+            <div class="border border-black/10 p-5 bg-white flex flex-col gap-2">
+              <h4 class="font-mono text-xs font-black uppercase tracking-wider border-b border-black/10 pb-2 mb-2">SALES BY CATEGORY</h4>
+              <div class="h-[200px] relative">
+                <canvas id="category-chart"></canvas>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Metric Cards Grid -->
-        <div class="grid grid-cols-4 gap-4">
-          <div class="border border-black p-4 bg-zinc-50 flex flex-col justify-between">
-            <span class="font-mono text-[10px] text-black/40 uppercase tracking-wider">Total Sales Revenue</span>
-            <div class="mt-2 flex items-baseline gap-2">
-              <span class="text-2xl font-black">₹4,28,450</span>
-              <span class="font-mono text-[10px] text-green-600 font-bold">+24.2%</span>
-            </div>
-          </div>
-          <div class="border border-black p-4 bg-zinc-50 flex flex-col justify-between">
-            <span class="font-mono text-[10px] text-black/40 uppercase tracking-wider">Active Orders</span>
-            <div class="mt-2 flex items-baseline gap-2">
-              <span class="text-2xl font-black">186 items</span>
-              <span class="font-mono text-[10px] text-green-600 font-bold">+12.5%</span>
-            </div>
-          </div>
-          <div class="border border-black p-4 bg-zinc-50 flex flex-col justify-between">
-            <span class="font-mono text-[10px] text-black/40 uppercase tracking-wider">Conversion Rate</span>
-            <div class="mt-2 flex items-baseline gap-2">
-              <span class="text-2xl font-black">3.45%</span>
-              <span class="font-mono text-[10px] text-black/50 font-bold">Stable</span>
-            </div>
-          </div>
-          <div class="border border-black p-4 bg-zinc-50 flex flex-col justify-between">
-            <span class="font-mono text-[10px] text-black/40 uppercase tracking-wider">Average Order Val</span>
-            <div class="mt-2 flex items-baseline gap-2">
-              <span class="text-2xl font-black">₹2,300</span>
-              <span class="font-mono text-[10px] text-green-600 font-bold">+4.8%</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Two Column Dashboard Layout -->
-        <div class="grid grid-cols-12 gap-8 items-start">
+        <!-- 2. SECTION: INVENTORY (Inventory & Form Tab) -->
+        <div id="sec-inventory" class="hidden grid grid-cols-12 gap-6 items-start">
           
-          <!-- Column 1: Add Jersey Form (Col Span 4) -->
-          <div class="col-span-4 border border-black p-6 bg-white flex flex-col gap-6">
-            <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2">ADD NEW JERSEY</h3>
+          <!-- Add Product Form -->
+          <div class="col-span-4 border border-black/10 p-6 bg-white flex flex-col gap-4">
+            <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">add_circle</span>
+              ADD NEW JERSEY
+            </h3>
             <form id="add-product-form" class="flex flex-col gap-4" onsubmit="event.preventDefault();">
               <div>
-                <label for="p-name" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Jersey Name</label>
-                <input type="text" id="p-name" required placeholder="E.G. CHAMPION STRIPE" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase" />
+                <label for="p-name" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Jersey Name</label>
+                <input type="text" id="p-name" required placeholder="E.G. CHAMPION STRIPE" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase rounded-none" />
               </div>
-
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label for="p-price" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Price (₹)</label>
-                  <input type="number" id="p-price" required placeholder="1899" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none" />
+                  <label for="p-price" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Price (₹)</label>
+                  <input type="number" id="p-price" required placeholder="1899" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none rounded-none" />
                 </div>
                 <div>
-                  <label for="p-category" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Category</label>
-                  <select id="p-category" required class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none rounded-none">
-                    {categories.filter(c => c !== "All").map(c => (
-                      <option value={c}>{c.toUpperCase()}</option>
-                    ))}
-                  </select>
+                  <label for="p-compare-price" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Compare-At / Offer (₹)</label>
+                  <input type="number" id="p-compare-price" placeholder="2499" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none rounded-none" />
                 </div>
               </div>
-
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label for="p-pattern" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Design Pattern</label>
-                  <select id="p-pattern" required class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none rounded-none">
-                    <option value="vertical-stripes">VERTICAL STRIPES</option>
-                    <option value="horizontal-stripes">HORIZONTAL STRIPES</option>
-                    <option value="solid-black">STEALTH BLACK</option>
-                    <option value="chevron-black">CHEVRON BLACK</option>
-                    <option value="solid-white">SOLID WHITE</option>
-                    <option value="fine-grid">FINE GRID</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="p-badge" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Badge</label>
-                  <input type="text" id="p-badge" placeholder="E.G. LIMITED" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase" />
-                </div>
-              </div>
-
               <div>
-                <label for="p-desc" class="block font-mono text-[9px] text-black/60 uppercase mb-1">Product Description</label>
-                <textarea id="p-desc" required rows="3" placeholder="PRODUCT SPECIFICATIONS AND TEXTURES..." class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase"></textarea>
+                <label for="p-category" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Category</label>
+                <select id="p-category" required class="w-full bg-white border border-black px-3 py-2 text-xs font-mono text-black focus:outline-none rounded-none">
+                  <!-- Dynamically populated in JavaScript -->
+                </select>
+                <div id="custom-category-container" class="mt-2 hidden">
+                  <label for="p-custom-category" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Custom Category Name</label>
+                  <input type="text" id="p-custom-category" placeholder="E.G. CRICKET" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none rounded-none" />
+                </div>
               </div>
-
-              <button 
-                type="submit" 
-                class="w-full bg-black text-white font-black py-3.5 uppercase text-xs tracking-widest hover:bg-zinc-950 transition-colors mt-2"
-              >
+              <div>
+                <label for="p-image-file" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Product Pictures (1 to 4 files)</label>
+                <input type="file" id="p-image-file" accept="image/*" multiple required class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none rounded-none" />
+              </div>
+              <div>
+                <label for="p-colors" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Jersey Colors (Comma separated, e.g. Red, Blue, Black)</label>
+                <input type="text" id="p-colors" placeholder="E.G. RED, WHITE" class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none rounded-none uppercase" />
+              </div>
+              
+              <div class="border border-black/10 p-3 bg-zinc-50 flex flex-col gap-2">
+                <span class="font-mono text-[9px] text-black/40 uppercase font-bold">Size Stock Quantity</span>
+                <div class="grid grid-cols-5 gap-1">
+                  <div>
+                    <label for="stock-s" class="block font-mono text-[7px] text-black/60 uppercase text-center mb-0.5">S</label>
+                    <input type="number" id="stock-s" placeholder="0" class="w-full bg-white border border-black py-1 text-center text-[10px] font-mono focus:outline-none rounded-none" />
+                  </div>
+                  <div>
+                    <label for="stock-m" class="block font-mono text-[7px] text-black/60 uppercase text-center mb-0.5">M</label>
+                    <input type="number" id="stock-m" placeholder="0" class="w-full bg-white border border-black py-1 text-center text-[10px] font-mono focus:outline-none rounded-none" />
+                  </div>
+                  <div>
+                    <label for="stock-l" class="block font-mono text-[7px] text-black/60 uppercase text-center mb-0.5">L</label>
+                    <input type="number" id="stock-l" placeholder="0" class="w-full bg-white border border-black py-1 text-center text-[10px] font-mono focus:outline-none rounded-none" />
+                  </div>
+                  <div>
+                    <label for="stock-xl" class="block font-mono text-[7px] text-black/60 uppercase text-center mb-0.5">XL</label>
+                    <input type="number" id="stock-xl" placeholder="0" class="w-full bg-white border border-black py-1 text-center text-[10px] font-mono focus:outline-none rounded-none" />
+                  </div>
+                  <div>
+                    <label for="stock-xxl" class="block font-mono text-[7px] text-black/60 uppercase text-center mb-0.5">XXL</label>
+                    <input type="number" id="stock-xxl" placeholder="0" class="w-full bg-white border border-black py-1 text-center text-[10px] font-mono focus:outline-none rounded-none" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label for="p-desc" class="block font-mono text-[8px] text-black/60 uppercase mb-1 font-bold">Product Description</label>
+                <textarea id="p-desc" required rows="3" placeholder="PRODUCT DESCRIPTION AND QUALITY SPECS..." class="w-full bg-white border border-black px-3 py-2 text-xs font-mono focus:outline-none uppercase rounded-none"></textarea>
+              </div>
+              <button type="submit" class="w-full bg-black text-white font-mono text-[10px] font-bold py-3.5 uppercase tracking-widest hover:bg-zinc-900 transition-colors flex items-center justify-center gap-2 rounded-none">
+                <span class="material-symbols-outlined text-[16px]">publish</span>
                 PUBLISH TO STORE
               </button>
             </form>
 
-            <div id="admin-toast" class="hidden border border-black p-3 bg-zinc-50 font-mono text-[10px] text-center font-bold tracking-widest uppercase">
+            <!-- Bulk Import Button Panel -->
+            <div class="border-t border-black/10 pt-4 mt-2 flex flex-col gap-2">
+              <h4 class="font-mono text-[10px] text-black/40 uppercase font-black tracking-wider">BULK IMPORT PRODUCTS</h4>
+              <button type="button" id="toggle-bulk-btn" class="w-full border border-black py-2.5 font-mono text-[9px] font-bold tracking-wider hover:bg-black hover:text-white transition-all uppercase rounded-none">
+                SHOW BULK UPLOAD (JSON)
+              </button>
+              
+              <div id="bulk-upload-container" class="hidden flex flex-col gap-3">
+                <p class="font-mono text-[8px] text-black/50 leading-relaxed uppercase">
+                  Paste a JSON array of products. Required fields: name, price, description, images (array of URLs or SVG pattern style), sizes (array of [name, stock] objects).
+                </p>
+                <textarea 
+                  id="bulk-json-input" 
+                  rows="6" 
+                  placeholder='[\n  {\n    "name": "CHELSEA HOME JERSEY",\n    "price": 1899,\n    "description": "Premium fit",\n    "images": ["solid-white"],\n    "sizes": [{"name": "M", "stock": 10}]\n  }\n]'
+                  class="w-full bg-white border border-black p-2 text-[10px] font-mono focus:outline-none rounded-none"
+                ></textarea>
+                <button 
+                  type="button" 
+                  id="bulk-import-btn"
+                  class="w-full bg-black text-white font-black py-3 uppercase text-[10px] tracking-wider hover:bg-zinc-950 transition-colors rounded-none"
+                >
+                  BULK PUBLISH
+                </button>
+              </div>
+            </div>
+
+            <!-- Toast feedback banner -->
+            <div id="admin-toast" class="hidden border border-black p-3 bg-zinc-50 font-mono text-[10px] text-center font-bold tracking-widest uppercase mt-2">
               Jersey added successfully!
             </div>
           </div>
 
-          <!-- Column 2: Product Performance & Growth Analytics (Col Span 8) -->
-          <div class="col-span-8 flex flex-col gap-6">
-            
-            <!-- Products Catalog with Growth Stats -->
-            <div class="border border-black p-6 bg-white">
-              <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2 mb-4">PRODUCT PERFORMANCE ANALYTICS</h3>
-              
-              <div class="overflow-x-auto">
-                <table class="w-full font-mono text-[10px] text-left border-collapse">
-                  <thead>
-                    <tr class="border-b border-black/10 uppercase text-black/40">
-                      <th class="py-2.5 font-bold">Jersey Item</th>
-                      <th class="py-2.5 font-bold">Category</th>
-                      <th class="py-2.5 font-bold text-right">Price</th>
-                      <th class="py-2.5 font-bold text-right">Views</th>
-                      <th class="py-2.5 font-bold text-right">Orders</th>
-                      <th class="py-2.5 font-bold text-right">Growth</th>
-                      <th class="py-2.5 font-bold text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="analytics-table-body">
-                    <!-- Loaded dynamically via JS -->
-                  </tbody>
-                </table>
+          <!-- Product Performance Table -->
+          <div class="col-span-8 border border-black/10 p-6 bg-white overflow-x-auto">
+            <div class="flex justify-between items-center border-b border-black pb-2 mb-4">
+              <h3 class="font-mono text-sm font-black uppercase tracking-wider">PRODUCT PERFORMANCE ANALYTICS</h3>
+              <button id="delete-selected-btn" class="bg-red-600 hover:bg-red-700 text-white font-mono text-[9px] font-bold px-3 py-1.5 uppercase tracking-wider hidden transition-colors rounded-none">
+                DELETE SELECTED (0)
+              </button>
+            </div>
+            <table class="w-full font-mono text-[10px] text-left border-collapse">
+              <thead>
+                <tr class="border-b border-black/10 uppercase text-black/40">
+                  <th class="py-2.5 pr-2 w-6"><input type="checkbox" id="select-all-products" class="cursor-pointer" /></th>
+                  <th class="py-2.5 font-bold">Jersey Item</th>
+                  <th class="py-2.5 font-bold">Category</th>
+                  <th class="py-2.5 font-bold text-right">Price</th>
+                  <th class="py-2.5 font-bold text-right">Stock</th>
+                  <th class="py-2.5 font-bold text-right">Views</th>
+                  <th class="py-2.5 font-bold text-right">Orders</th>
+                  <th class="py-2.5 font-bold text-right">Growth</th>
+                  <th class="py-2.5 font-bold text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="analytics-table-body">
+                <!-- Dynamically filled product rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. SECTION: ORDERS (Order Feeds Tab) -->
+        <div id="sec-orders" class="hidden flex flex-col gap-6 bg-white border border-black/10 p-6">
+          <div>
+            <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2 mb-4 font-black">ACTIVE CUSTOM ORDERS</h3>
+            <div id="admin-active-orders" class="flex flex-col gap-3">
+              <!-- Dynamically populated from localStorage Orders -->
+            </div>
+          </div>
+          <div class="pt-6 border-t border-black/15">
+            <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2 mb-4 font-black">COMPLETED & ARCHIVED ORDERS</h3>
+            <div id="admin-completed-orders" class="flex flex-col gap-3 opacity-80">
+              <!-- Dynamically populated from localStorage Orders -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. SECTION: CMS SETTINGS (Hero slides, CMS general text settings) -->
+        <div id="sec-cms" class="hidden grid grid-cols-12 gap-6 items-start">
+          
+          <!-- Hero slides configuration list -->
+          <div class="col-span-7 flex flex-col gap-6">
+            <div class="border border-black/10 p-6 bg-white flex flex-col gap-4">
+              <div class="flex justify-between items-center border-b border-black pb-2">
+                <h3 class="font-mono text-sm font-black uppercase tracking-wider">HERO SLIDER SETTINGS</h3>
+                <button type="button" id="cms-add-hero-btn" class="bg-black text-white px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider font-bold hover:bg-zinc-950 transition-colors">ADD SLIDE</button>
+              </div>
+
+              <!-- Hero Slide Form (Collapsible) -->
+              <div id="cms-hero-form-container" class="hidden border border-black p-4 bg-zinc-50 flex flex-col gap-3">
+                <h4 class="font-mono text-[10px] font-bold uppercase tracking-wider border-b border-black/15 pb-1 text-black/50">NEW HERO SLIDE DETAILS</h4>
+                <form id="cms-hero-form" class="flex flex-col gap-3">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Eyebrow (Mini-header)</label>
+                      <input type="text" id="new-hero-eyebrow" placeholder="LIMITED RELEASE" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                    </div>
+                    <div>
+                      <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Slide Title</label>
+                      <input type="text" id="new-hero-title" required placeholder="RETRO COLLECTION" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Description Text</label>
+                    <input type="text" id="new-hero-desc" placeholder="Shop the premium stripes archive." class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Button Text</label>
+                      <input type="text" id="new-hero-btn-text" placeholder="SHOP NOW" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                    </div>
+                    <div>
+                      <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Button Link</label>
+                      <input type="text" id="new-hero-btn-link" placeholder="/shop" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Hero Image File (Upload)</label>
+                      <input type="file" id="new-hero-image-file" accept="image/*" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                      <input type="text" id="new-hero-image-pattern" placeholder="OR type SVG style (stripes, etc)" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                    </div>
+                    <div>
+                      <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Display Order</label>
+                      <input type="number" id="new-hero-order" value="0" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                    </div>
+                  </div>
+                  <div class="flex gap-2 pt-2">
+                    <button type="submit" class="px-4 py-2 bg-green-700 text-white text-[9px] font-mono font-bold hover:bg-green-800 transition-colors uppercase">Save Slide</button>
+                    <button type="button" id="cms-cancel-hero-btn" class="px-4 py-2 border border-black text-black text-[9px] font-mono font-bold hover:bg-zinc-50 transition-colors uppercase">Cancel</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Hero Slides Listing -->
+              <div id="cms-hero-list" class="flex flex-col gap-3 mt-2">
+                <!-- Dynamically populated list -->
               </div>
             </div>
-
-            <!-- Orders Activity Feed -->
-            <div class="border border-black p-6 bg-white">
-              <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2 mb-4">REAL-TIME CUSTOM ORDERS</h3>
-              <div class="flex flex-col gap-3">
-                <div class="flex justify-between items-center p-3 border border-black/10 bg-zinc-50/50">
-                  <div class="font-mono text-[10px] uppercase">
-                    <p class="font-bold">ORDER #JS-482012 by <span class="underline">AVANTH</span></p>
-                    <p class="text-black/50 mt-0.5">Customization: NAME: CHAMP | NUMBER: 07 | Size: L</p>
-                  </div>
-                  <span class="font-mono text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-sm">COMPLETED</span>
-                </div>
-                <div class="flex justify-between items-center p-3 border border-black/10 bg-zinc-50/50">
-                  <div class="font-mono text-[10px] uppercase">
-                    <p class="font-bold">ORDER #JS-482011 by <span class="underline">CHAMP</span></p>
-                    <p class="text-black/50 mt-0.5">Customization: NAME: WINNER | NUMBER: 10 | Size: M</p>
-                  </div>
-                  <span class="font-mono text-xs font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-sm">COMPLETED</span>
-                </div>
-              </div>
-            </div>
-
           </div>
 
+          <!-- General Banners & settings Form -->
+          <div class="col-span-5 border border-black/10 p-6 bg-white flex flex-col gap-4">
+            <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2">CMS CONTENT SETTINGS</h3>
+            <form id="cms-general-form" class="flex flex-col gap-4">
+              
+              <!-- Headings -->
+              <div class="border border-black/10 p-3 bg-zinc-50/50 flex flex-col gap-3">
+                <span class="font-mono text-[9px] text-black/40 uppercase font-bold">Section Titles settings</span>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Featured Collection Title</label>
+                  <input type="text" id="heading-featured-title" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Featured Subtitle</label>
+                  <input type="text" id="heading-featured-subtitle" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Bestsellers Section Title</label>
+                  <input type="text" id="heading-bestsellers-title" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Bestsellers Subtitle</label>
+                  <input type="text" id="heading-bestsellers-subtitle" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                </div>
+              </div>
+
+              <!-- Promo settings -->
+              <div class="border border-black/10 p-3 bg-zinc-50/50 flex flex-col gap-3">
+                <span class="font-mono text-[9px] text-black/40 uppercase font-bold">Promotion Banners</span>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5 font-bold">Card 1 Title</label>
+                  <input type="text" id="promo1-title" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                  <input type="text" id="promo1-desc" placeholder="Description" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                  <input type="text" id="promo1-badge" placeholder="Badge" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                  <input type="text" id="promo1-link" placeholder="Link" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                </div>
+                <div class="border-t border-black/10 pt-2">
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5 font-bold">Card 2 Title</label>
+                  <input type="text" id="promo2-title" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                  <input type="text" id="promo2-desc" placeholder="Description" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                  <input type="text" id="promo2-badge" placeholder="Badge" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                  <input type="text" id="promo2-link" placeholder="Link" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                </div>
+                <div class="border-t border-black/10 pt-2">
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5 font-bold">Card 3 Title</label>
+                  <input type="text" id="promo3-title" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                  <input type="text" id="promo3-desc" placeholder="Description" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                  <input type="text" id="promo3-badge" placeholder="Badge" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none mt-1" />
+                </div>
+              </div>
+
+              <!-- Categories Categories -->
+              <div class="border border-black/10 p-3 bg-zinc-50/50 flex flex-col gap-3">
+                <span class="font-mono text-[9px] text-black/40 uppercase font-bold">Category Grid Items</span>
+                <div id="cms-categories-list" class="flex flex-col gap-2">
+                  <!-- Filled via JS -->
+                </div>
+              </div>
+
+              <!-- Delivery Charges -->
+              <div class="border border-black/10 p-3 bg-zinc-50/50 flex flex-col gap-3">
+                <span class="font-mono text-[9px] text-black/40 uppercase font-bold">Delivery charges</span>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Standard Delivery (₹)</label>
+                  <input type="number" id="delivery-charge" required class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Custom / Express Delivery (₹)</label>
+                  <input type="number" id="custom-delivery-charge" required class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                </div>
+              </div>
+
+              <!-- CTA Banner -->
+              <div class="border border-black/10 p-3 bg-zinc-50/50 flex flex-col gap-3">
+                <span class="font-mono text-[9px] text-black/40 uppercase font-bold">CTA Register Banners</span>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">CTA Title</label>
+                  <input type="text" id="cta-title" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">CTA Description</label>
+                  <input type="text" id="cta-desc" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none font-bold" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Button Text</label>
+                  <input type="text" id="cta-btn-text" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[8px] text-black/60 uppercase mb-0.5">Button Link</label>
+                  <input type="text" id="cta-btn-link" class="w-full bg-white border border-black px-2 py-1 text-[11px] font-mono focus:outline-none" />
+                </div>
+              </div>
+
+              <button type="submit" class="w-full bg-black text-white font-mono text-[10px] font-bold py-3.5 uppercase tracking-widest hover:bg-zinc-900 transition-colors rounded-none">
+                SAVE HOMEPAGE SETTINGS
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- 5. SECTION: CUSTOMERS (Registered User List) -->
+        <div id="sec-customers" class="hidden border border-black/10 p-6 bg-white overflow-x-auto">
+          <h3 class="font-mono text-sm font-black uppercase tracking-wider border-b border-black pb-2 mb-4">REGISTERED CUSTOMER DATABASE</h3>
+          <table class="w-full font-mono text-[10px] text-left border-collapse">
+            <thead>
+              <tr class="border-b border-black/10 uppercase text-black/40">
+                <th class="py-2.5 font-bold">User Name</th>
+                <th class="py-2.5 font-bold">Email Address</th>
+                <th class="py-2.5 font-bold text-right">Register Date</th>
+              </tr>
+            </thead>
+            <tbody id="customer-table-body">
+              <!-- Dynamically populated list -->
+            </tbody>
+          </table>
         </div>
 
       </div>
-
-    </div>
+    </main>
   </div>
 </Layout>
 
-<script define:vars={{ products }}>
-  const loginForm = document.getElementById("admin-login-form");
-  const adminPin = document.getElementById("admin-pin");
-  const loginError = document.getElementById("login-error");
-  const loginSection = document.getElementById("admin-login-sec");
-  const panelSection = document.getElementById("admin-panel-sec");
-  const lockBtn = document.getElementById("admin-lock-btn");
+<script src="https://cdn.jsdelivr.net/npm/chart.js" is:inline></script>
 
-  const addForm = document.getElementById("add-product-form");
-  const pName = document.getElementById("p-name");
-  const pPrice = document.getElementById("p-price");
-  const pCategory = document.getElementById("p-category");
-  const pPattern = document.getElementById("p-pattern");
-  const pBadge = document.getElementById("p-badge");
-  const pDesc = document.getElementById("p-desc");
-  const adminToast = document.getElementById("admin-toast");
-  const tableBody = document.getElementById("analytics-table-body");
+<script define:vars={{ apiURL }}>
+  window.addEventListener("DOMContentLoaded", () => {
+    
+    // NAVIGATION TAB ROUTING LOGIC
+    const navDashboard = document.getElementById("nav-dashboard");
+    const navInventory = document.getElementById("nav-inventory");
+    const navOrders = document.getElementById("nav-orders");
+    const navCms = document.getElementById("nav-cms");
 
-  const SECRET_PIN = "0000";
+    const secDashboard = document.getElementById("sec-dashboard");
+    const secInventory = document.getElementById("sec-inventory");
+    const secOrders = document.getElementById("sec-orders");
+    const secCms = document.getElementById("sec-cms");
+    const secCustomers = document.getElementById("sec-customers");
 
-  function checkSession() {
-    if (sessionStorage.getItem("admin_authorized") === "true") {
-      loginSection?.classList.add("hidden");
-      panelSection?.classList.remove("hidden");
-      renderAnalytics();
+    const navButtons = [navDashboard, navInventory, navOrders, navCms];
+    const secViews = [secDashboard, secInventory, secOrders, secCms, secCustomers];
+
+    function showSection(targetSec, activeNav) {
+      secViews.forEach(s => s?.classList.add("hidden"));
+      targetSec?.classList.remove("hidden");
+
+      navButtons.forEach(n => {
+        n?.classList.remove("bg-black", "text-white");
+        n?.classList.add("text-black/60", "hover:bg-zinc-100");
+      });
+      activeNav?.classList.add("bg-black", "text-white");
+      activeNav?.classList.remove("text-black/60", "hover:bg-zinc-100");
     }
-  }
 
-  loginForm?.addEventListener("submit", () => {
-    if (adminPin && adminPin.value === SECRET_PIN) {
-      sessionStorage.setItem("admin_authorized", "true");
-      loginSection?.classList.add("hidden");
-      panelSection?.classList.remove("hidden");
-      if (loginError) loginError.classList.add("hidden");
-      adminPin.value = "";
-      renderAnalytics();
-    } else {
-      if (loginError) loginError.classList.remove("hidden");
+    navDashboard?.addEventListener("click", (e) => {
+      e.preventDefault();
+      showSection(secDashboard, navDashboard);
+    });
+    navInventory?.addEventListener("click", (e) => {
+      e.preventDefault();
+      showSection(secInventory, navInventory);
+    });
+    navOrders?.addEventListener("click", (e) => {
+      e.preventDefault();
+      showSection(secOrders, navOrders);
+    });
+    navCms?.addEventListener("click", (e) => {
+      e.preventDefault();
+      showSection(secCms, navCms);
+    });
+
+    // --------------------------------------------
+    // SYSTEM LOGIN & AUTHORIZATION LOGIC
+    // --------------------------------------------
+    const loginForm = document.getElementById("admin-login-form");
+    const adminUsernameInput = document.getElementById("admin-username");
+    const adminPasswordInput = document.getElementById("admin-password");
+    const loginError = document.getElementById("login-error");
+    const loginSection = document.getElementById("admin-login-sec");
+    const panelSection = document.getElementById("admin-panel-sec");
+    const lockBtn = document.getElementById("admin-lock-btn");
+
+    const addForm = document.getElementById("add-product-form");
+    const pName = document.getElementById("p-name");
+    const pPrice = document.getElementById("p-price");
+    const pComparePrice = document.getElementById("p-compare-price");
+    const pCategory = document.getElementById("p-category");
+    const customCategoryContainer = document.getElementById("custom-category-container");
+    const pCustomCategory = document.getElementById("p-custom-category");
+    const pImageFile = document.getElementById("p-image-file");
+    const stockS = document.getElementById("stock-s");
+    const stockM = document.getElementById("stock-m");
+    const stockL = document.getElementById("stock-l");
+    const stockXl = document.getElementById("stock-xl");
+    const stockXxl = document.getElementById("stock-xxl");
+    const pDesc = document.getElementById("p-desc");
+    const pColors = document.getElementById("p-colors");
+    const adminToast = document.getElementById("admin-toast");
+    const tableBody = document.getElementById("analytics-table-body");
+    const customerTableBody = document.getElementById("customer-table-body");
+
+    pCategory?.addEventListener("change", () => {
+      if (pCategory.value === "__NEW__") {
+        customCategoryContainer?.classList.remove("hidden");
+        pCustomCategory?.setAttribute("required", "true");
+      } else {
+        customCategoryContainer?.classList.add("hidden");
+        pCustomCategory?.removeAttribute("required");
+      }
+    });
+
+    const toggleBulkBtn = document.getElementById("toggle-bulk-btn");
+    const bulkUploadContainer = document.getElementById("bulk-upload-container");
+    const bulkJsonInput = document.getElementById("bulk-json-input");
+    const bulkImportBtn = document.getElementById("bulk-import-btn");
+
+    const ADMIN_USER = "admin";
+    const ADMIN_PASS = "admin123";
+
+    function getBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
     }
-  });
 
-  lockBtn?.addEventListener("click", () => {
-    sessionStorage.removeItem("admin_authorized");
-    panelSection?.classList.add("hidden");
-    loginSection?.classList.remove("hidden");
-  });
+    function checkSession() {
+      if (sessionStorage.getItem("admin_authorized") === "true") {
+        loginSection?.classList.add("hidden");
+        panelSection?.classList.remove("hidden");
+        renderAnalytics();
+        renderHomepageCMS();
+      }
+    }
 
-  addForm?.addEventListener("submit", () => {
-    if (!pName || !pPrice || !pCategory || !pPattern || !pDesc) return;
-
-    const newProduct = {
-      id: "custom-" + Date.now(),
-      name: pName.value.trim().toUpperCase(),
-      category: pCategory.value,
-      price: parseInt(pPrice.value),
-      badge: pBadge ? pBadge.value.trim().toUpperCase() : "",
-      description: pDesc.value.trim(),
-      features: ["100% Premium polyester", "Moisture wicking", "Reinforced stitching"],
-      pattern: pPattern.value,
-      // Add mock initial analytics
-      views: 12,
-      orders: 0,
-      growth: "+0%"
-    };
-
-    try {
-      const customList = JSON.parse(localStorage.getItem("custom_products") || "[]");
-      customList.push(newProduct);
-      localStorage.setItem("custom_products", JSON.stringify(customList));
-
-      addForm.reset();
-
-      if (adminToast) {
-        adminToast.classList.remove("hidden");
-        setTimeout(() => {
-          adminToast.classList.add("hidden");
-        }, 2500);
+    loginForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const loginBtn = loginForm.querySelector("button[type='submit']");
+      const originalText = loginBtn ? loginBtn.textContent : "";
+      if (loginBtn) {
+        loginBtn.textContent = "AUTHORIZING... ◌";
+        loginBtn.disabled = true;
       }
 
-      renderAnalytics();
-    } catch (e) {
-      console.error(e);
-    }
-  });
+      setTimeout(() => {
+        try {
+          if (
+            adminUsernameInput && 
+            adminPasswordInput && 
+            adminUsernameInput.value.trim().toLowerCase() === ADMIN_USER && 
+            adminPasswordInput.value.trim() === ADMIN_PASS
+          ) {
+            sessionStorage.setItem("admin_authorized", "true");
+            loginSection?.classList.add("hidden");
+            panelSection?.classList.remove("hidden");
+            if (loginError) loginError.classList.add("hidden");
+            adminUsernameInput.value = "";
+            adminPasswordInput.value = "";
+            renderAnalytics();
+            renderHomepageCMS();
+          } else {
+            if (loginError) loginError.classList.remove("hidden");
+          }
+        } catch (err) {
+          console.error("Authorization error:", err);
+          if (loginError) loginError.classList.remove("hidden");
+        } finally {
+          if (loginBtn) {
+            loginBtn.textContent = originalText;
+            loginBtn.disabled = false;
+          }
+        }
+      }, 600);
+    });
 
-  // Render product rows with statistics
-  function renderAnalytics() {
-    if (!tableBody) return;
+    toggleBulkBtn?.addEventListener("click", () => {
+      const isHidden = bulkUploadContainer?.classList.contains("hidden");
+      if (isHidden) {
+        bulkUploadContainer?.classList.remove("hidden");
+        toggleBulkBtn.textContent = "HIDE BULK UPLOAD";
+      } else {
+        bulkUploadContainer?.classList.add("hidden");
+        toggleBulkBtn.textContent = "SHOW BULK UPLOAD (JSON)";
+      }
+    });
 
-    try {
-      const customList = JSON.parse(localStorage.getItem("custom_products") || "[]");
-      
-      // Seed default products with mock analytics for display
-      const seededStaticProducts = products.map((p, idx) => ({
-        ...p,
-        views: [1420, 940, 810, 1150, 1920, 680][idx % 6],
-        orders: [54, 32, 28, 41, 68, 19][idx % 6],
-        growth: ["+14.2%", "+8.4%", "+22.1%", "+4.2%", "+31.2%", "-2.5%"][idx % 6]
-      }));
+    bulkImportBtn?.addEventListener("click", async () => {
+      if (!bulkJsonInput) return;
+      const textVal = bulkJsonInput.value.trim();
+      if (!textVal) {
+        alert("Please paste some JSON products array first.");
+        return;
+      }
 
-      const allProducts = [...seededStaticProducts, ...customList];
-      tableBody.innerHTML = "";
+      let parsed = [];
+      try {
+        parsed = JSON.parse(textVal);
+        if (!Array.isArray(parsed)) {
+          throw new Error("JSON must be a root array of products.");
+        }
+      } catch (e) {
+        alert("Invalid JSON: " + e.message);
+        return;
+      }
 
-      allProducts.forEach((p) => {
-        const tr = document.createElement("tr");
-        tr.className = "border-b border-black/5 hover:bg-zinc-50/50";
+      const processedProducts = parsed.map((p) => {
+        const nameVal = p.name ? p.name.trim() : "UNNAMED JERSEY";
+        const slugVal = p.slug || nameVal.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
         
-        // Show delete button for custom products only
-        const isCustom = p.id.toString().startsWith("custom-");
-        const actionHtml = isCustom 
-          ? `<button class="delete-p-btn text-red-600 font-bold hover:underline" data-id="${p.id}">DELETE</button>`
-          : `<span class="text-black/30">LOCKED</span>`;
+        // Map sizes from string list or object list to schema-compliant objects
+        let sizesArray = [];
+        if (p.sizes && Array.isArray(p.sizes)) {
+          sizesArray = p.sizes.map(s => {
+            if (typeof s === "string") {
+              return { name: s.toUpperCase(), stock: 50 }; // Default stock 50
+            }
+            return {
+              name: s.name ? s.name.toUpperCase() : "M",
+              stock: s.stock !== undefined ? parseInt(s.stock, 10) : 50
+            };
+          });
+        } else {
+          sizesArray = [
+            { name: "S", stock: 50 },
+            { name: "M", stock: 50 },
+            { name: "L", stock: 50 },
+            { name: "XL", stock: 50 },
+            { name: "XXL", stock: 50 }
+          ];
+        }
 
-        const growthColor = p.growth.startsWith("-") ? "text-red-600" : "text-green-600";
+        // Map colors from string list or object list to schema-compliant objects
+        let colorsArray = [];
+        const colorHexMap = {
+          red: "#dc2626",
+          blue: "#2563eb",
+          black: "#18181b",
+          white: "#ffffff",
+          green: "#16a34a",
+          gold: "#d97706",
+          "sky blue": "#38bdf8",
+          maroon: "#7f1d1d",
+          orange: "#f97316",
+          purple: "#7c3aed",
+          navy: "#1e3a8a",
+          crimson: "#991b1b",
+          yellow: "#eab308"
+        };
+        if (p.colors && Array.isArray(p.colors)) {
+          colorsArray = p.colors.map(c => {
+            if (typeof c === "string") {
+              const hex = colorHexMap[c.toLowerCase().trim()] || "#71717a";
+              return { name: c, hex };
+            }
+            return {
+              name: c.name || "Default",
+              hex: c.hex || "#71717a"
+            };
+          });
+        } else {
+          colorsArray = [{ name: "Default White", hex: "#ffffff" }];
+        }
 
-        tr.innerHTML = `
-          <td class="py-3.5 pr-2 font-bold uppercase truncate max-w-[150px]">${p.name}</td>
-          <td class="py-3.5 pr-2 uppercase text-black/60">${p.category}</td>
-          <td class="py-3.5 pr-2 text-right">₹${p.price}</td>
-          <td class="py-3.5 pr-2 text-right">${p.views || 0}</td>
-          <td class="py-3.5 pr-2 text-right">${p.orders || 0}</td>
-          <td class="py-3.5 pr-2 text-right font-bold ${growthColor}">${p.growth || "+0%"}</td>
-          <td class="py-3.5 text-right font-bold">${actionHtml}</td>
-        `;
-        tableBody.appendChild(tr);
+        return {
+          name: nameVal.toUpperCase(),
+          slug: slugVal,
+          category: p.category || "Club",
+          price: parseInt(p.price, 10) || 0,
+          compareAtPrice: p.compareAtPrice ? parseInt(p.compareAtPrice, 10) : undefined,
+          badge: p.badge || "LIMITED",
+          description: p.description || "Premium quality sportswear jersey.",
+          features: p.features || ["100% Premium polyester", "Moisture wicking", "Reinforced stitching"],
+          images: p.images && Array.isArray(p.images) ? p.images : ["solid-white"],
+          colors: colorsArray,
+          sizes: sizesArray,
+          featured: p.featured !== undefined ? p.featured : true,
+          isActive: p.isActive !== undefined ? p.isActive : true
+        };
       });
 
-      // Attach delete click listeners
-      document.querySelectorAll(".delete-p-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          if (id) {
-            let list = JSON.parse(localStorage.getItem("custom_products") || "[]");
-            list = list.filter((item) => item.id !== id);
-            localStorage.setItem("custom_products", JSON.stringify(list));
-            renderAnalytics();
+      const originalText = bulkImportBtn.textContent;
+      bulkImportBtn.textContent = "PUBLISHING BULK... ◌";
+      bulkImportBtn.disabled = true;
+
+      try {
+        const response = await fetch(`${apiURL}/admin/products/bulk`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(processedProducts)
+        });
+
+        const resData = await response.json();
+        if (!response.ok) {
+          throw new Error(resData.message || "Bulk publication failed.");
+        }
+
+        alert(`${resData.products.length} products published successfully in bulk!`);
+        bulkJsonInput.value = "";
+        bulkUploadContainer?.classList.add("hidden");
+        toggleBulkBtn.textContent = "SHOW BULK UPLOAD (JSON)";
+        renderAnalytics();
+      } catch (err) {
+        alert("Failed bulk publishing: " + err.message);
+      } finally {
+        bulkImportBtn.textContent = originalText;
+        bulkImportBtn.disabled = false;
+      }
+    });
+
+    lockBtn?.addEventListener("click", () => {
+      sessionStorage.removeItem("admin_authorized");
+      panelSection?.classList.add("hidden");
+      loginSection?.classList.remove("hidden");
+    });
+
+    // --------------------------------------------
+    // PRODUCT CREATION/EDIT FORM SUBMIT
+    // --------------------------------------------
+    addForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const mode = addForm.getAttribute("data-mode") || "add";
+      const editId = addForm.getAttribute("data-edit-id") || "";
+
+      const btn = addForm.querySelector("button[type='submit']");
+      const originalText = btn.textContent;
+      btn.textContent = mode === "edit" ? "UPDATING JERSEY... ◌" : "PUBLISHING JERSEY... ◌";
+      btn.disabled = true;
+
+      try {
+        const fileList = pImageFile.files;
+        const base64Images = [];
+
+        for (let i = 0; i < fileList.length; i++) {
+          const b64 = await getBase64(fileList[i]);
+          base64Images.push(b64);
+        }
+
+        const sizeObj = [
+          { name: "S", stock: parseInt(stockS.value, 10) || 0 },
+          { name: "M", stock: parseInt(stockM.value, 10) || 0 },
+          { name: "L", stock: parseInt(stockL.value, 10) || 0 },
+          { name: "XL", stock: parseInt(stockXl.value, 10) || 0 },
+          { name: "XXL", stock: parseInt(stockXxl.value, 10) || 0 }
+        ];
+
+        const colorHexMap = {
+          red: "#dc2626",
+          blue: "#2563eb",
+          black: "#18181b",
+          white: "#ffffff",
+          green: "#16a34a",
+          gold: "#d97706",
+          "sky blue": "#38bdf8",
+          maroon: "#7f1d1d",
+          orange: "#f97316",
+          purple: "#7c3aed",
+          navy: "#1e3a8a",
+          crimson: "#991b1b",
+          yellow: "#eab308"
+        };
+        
+        let colorsArray = [{ name: "Default White", hex: "#ffffff" }];
+        if (pColors && pColors.value.trim()) {
+          colorsArray = pColors.value.split(",").map(c => {
+            const name = c.trim();
+            const hex = colorHexMap[name.toLowerCase()] || "#71717a";
+            return { name, hex };
+          });
+        }
+
+        let selectedCategory = pCategory.value;
+        if (selectedCategory === "__NEW__") {
+          selectedCategory = pCustomCategory.value.trim();
+          if (!selectedCategory) {
+            throw new Error("Please specify the custom category name.");
+          }
+        }
+
+        const payload = {
+          name: pName.value.trim().toUpperCase(),
+          price: parseFloat(pPrice.value),
+          compareAtPrice: pComparePrice.value ? parseFloat(pComparePrice.value) : undefined,
+          category: selectedCategory,
+          description: pDesc.value.trim(),
+          colors: colorsArray,
+          sizes: sizeObj
+        };
+
+        if (base64Images.length > 0) {
+          payload.images = base64Images;
+        }
+
+        let res;
+        if (mode === "edit") {
+          res = await fetch(`${apiURL}/admin/products/${editId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          // Add mode requires at least one image
+          if (base64Images.length === 0) {
+            throw new Error("Product pictures are required to publish.");
+          }
+          res = await fetch(`${apiURL}/products`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to submit product");
+        }
+
+        if (adminToast) {
+          adminToast.textContent = mode === "edit" ? "Jersey updated successfully!" : "Jersey added successfully!";
+          adminToast.classList.remove("hidden");
+          setTimeout(() => adminToast.classList.add("hidden"), 3000);
+        }
+
+        addForm.reset();
+        addForm.removeAttribute("data-mode");
+        addForm.removeAttribute("data-edit-id");
+        pImageFile.setAttribute("required", "true");
+
+        // Restore original form title & button text
+        const formTitle = addForm.previousElementSibling;
+        if (formTitle) {
+          formTitle.innerHTML = `
+            <span class="material-symbols-outlined text-lg">add_circle</span>
+            ADD NEW JERSEY
+          `;
+        }
+        if (btn) {
+          btn.innerHTML = `
+            <span class="material-symbols-outlined text-[16px]">publish</span>
+            PUBLISH TO STORE
+          `;
+        }
+
+        renderAnalytics();
+
+      } catch (err) {
+        console.error(err);
+        alert("Failed to save jersey: " + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // --------------------------------------------
+    // RENDER LOCALSTORAGE ORDERS ACTIVITY
+    // --------------------------------------------
+    function renderAdminOrders() {
+      const activeOrdersContainer = document.getElementById("admin-active-orders");
+      const completedOrdersContainer = document.getElementById("admin-completed-orders");
+      if (!activeOrdersContainer || !completedOrdersContainer) return;
+
+      try {
+        const existingOrders = JSON.parse(localStorage.getItem("mono_orders") || "[]");
+
+        activeOrdersContainer.innerHTML = "";
+        completedOrdersContainer.innerHTML = "";
+
+        const activeList = existingOrders.filter(o => o.status !== "FINISHED" && o.status !== "CANCELLED");
+        const archivedList = existingOrders.filter(o => o.status === "FINISHED" || o.status === "CANCELLED");
+
+        if (activeList.length === 0) {
+          activeOrdersContainer.innerHTML = `<div class="p-4 border border-dashed border-black/20 text-center font-mono text-[10px] text-black/40">NO ACTIVE INCOMING ORDERS FOUND.</div>`;
+        } else {
+          activeList.forEach((order) => {
+            const tr = document.createElement("div");
+            tr.className = "border border-black p-4 bg-white flex flex-col justify-between hover:border-black transition-colors bg-white font-mono text-[9px] uppercase";
+            
+            const itemNames = order.items.map(item => `${item.name} (${item.size}) x${item.quantity}`).join(', ');
+            const customizationInfo = order.items.map(item => {
+              if (item.customName && item.customName !== "MONO") {
+                return `[NAME: ${item.customName} / #: ${item.customNumber}]`;
+              }
+              return "";
+            }).filter(Boolean).join(" | ") || "NONE";
+
+            const badgeStyle = order.status === "SHIPPING TRANSIT" ? "text-amber-700 bg-amber-50 border-amber-200" : "text-zinc-600 bg-zinc-50 border-zinc-200";
+
+            tr.innerHTML = `
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <p class="font-bold text-[11px] text-black">ORDER #${order.orderId} | TOTAL: ₹${order.amount.toFixed(2)}</p>
+                  <p class="text-black/55 mt-0.5">Customer: ${order.customerName} (${order.customerPhone})</p>
+                  <p class="text-black/45 mt-0.5">Jerseys: ${itemNames}</p>
+                  <p class="text-black/45 mt-0.5">Customizations: ${customizationInfo}</p>
+                </div>
+                <span class="border px-2.5 py-1 rounded-sm uppercase tracking-wider font-bold shrink-0 ${badgeStyle}">
+                  ${order.status}
+                </span>
+              </div>
+              <div class="flex gap-2 pt-2 border-t border-dashed border-black/10 mt-2">
+                <button class="transit-btn border border-black/15 bg-zinc-50 px-2 py-1 font-bold hover:bg-black hover:text-white transition-colors" data-id="${order.orderId}">TRANSIT</button>
+                <button class="deliver-btn border border-black/15 bg-zinc-50 px-2 py-1 font-bold hover:bg-black hover:text-white transition-colors" data-id="${order.orderId}">DELIVER</button>
+                <button class="cancel-btn border border-red-200 text-red-600 bg-red-50 px-2 py-1 font-bold hover:bg-red-600 hover:text-white transition-colors" data-id="${order.orderId}">CANCEL</button>
+              </div>
+            `;
+            activeOrdersContainer.appendChild(tr);
+          });
+        }
+
+        if (archivedList.length === 0) {
+          completedOrdersContainer.innerHTML = `<div class="p-4 border border-dashed border-black/20 text-center font-mono text-[10px] text-black/40">NO COMPLETED OR CANCELLED ORDERS.</div>`;
+        } else {
+          completedOrdersContainer.innerHTML = archivedList.map((order) => {
+            const itemNames = order.items.map(item => `${item.name} (${item.size}) x${item.quantity}`).join(', ');
+            const customizationInfo = order.items.map(item => {
+              if (item.customName && item.customName !== "MONO") {
+                return `[NAME: ${item.customName} / #: ${item.customNumber}]`;
+              }
+              return "";
+            }).filter(Boolean).join(" | ") || "NONE";
+
+            const badgeStyle = order.status === "FINISHED" ? "text-green-700 bg-green-50 border-green-200" : "text-red-700 bg-red-50 border-red-200";
+
+            return `
+              <div class="flex justify-between items-center p-3 border border-black/10 bg-zinc-50/30 w-full opacity-70">
+                <div class="font-mono text-[10px] uppercase">
+                  <p class="font-bold text-black/50">ORDER #${order.orderId} | Total: ₹${order.amount.toFixed(2)}</p>
+                  <p class="text-black/40 mt-0.5">Jerseys: ${itemNames}</p>
+                  <p class="text-black/40 mt-0.5">Customization: ${customizationInfo}</p>
+                </div>
+                <span class="font-mono text-[8px] font-bold border px-2 py-1 rounded-sm uppercase shrink-0 ${badgeStyle}">
+                  ${order.status}
+                </span>
+              </div>
+            `;
+          }).join('');
+        }
+
+        // Action Buttons binding
+        document.querySelectorAll(".transit-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            updateStatus(btn.getAttribute("data-id"), "SHIPPING TRANSIT");
+          });
+        });
+
+        document.querySelectorAll(".deliver-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            updateStatus(btn.getAttribute("data-id"), "DELIVERED");
+          });
+        });
+
+
+
+        document.querySelectorAll(".cancel-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            if (confirm("Are you sure you want to cancel this order?")) {
+              updateStatus(btn.getAttribute("data-id"), "CANCELLED");
+            }
+          });
+        });
+
+        function updateStatus(orderId, newStatus) {
+          if (!orderId) return;
+          const existingOrders = JSON.parse(localStorage.getItem("mono_orders") || "[]");
+          const target = existingOrders.find(o => o.orderId === orderId);
+          if (target) {
+            target.status = newStatus;
+            localStorage.setItem("mono_orders", JSON.stringify(existingOrders));
+            renderAdminOrders();
+          }
+        }
+
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // --------------------------------------------
+    // RENDER REGISTERED CUSTOMERS LIST
+    // --------------------------------------------
+    async function renderCustomers() {
+      if (!customerTableBody) return;
+      try {
+        const response = await fetch(`${apiURL}/users/admin/users`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch users");
+        }
+
+        const usersList = data.users || [];
+        customerTableBody.innerHTML = "";
+
+        if (usersList.length === 0) {
+          customerTableBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center font-mono text-[10px] text-black/40">NO CUSTOMERS REGISTERED YET.</td></tr>`;
+          return;
+        }
+
+        usersList.forEach(u => {
+          const tr = document.createElement("tr");
+          tr.className = "border-b border-black/5 hover:bg-zinc-50/50";
+          const dateStr = new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+          
+          tr.innerHTML = `
+            <td class="py-3 pr-2 font-bold uppercase text-black">${u.name}</td>
+            <td class="py-3 pr-2 text-black/60">${u.email}</td>
+            <td class="py-3 text-right text-black/40">${dateStr}</td>
+          `;
+          customerTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+        customerTableBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center font-mono text-[10px] text-red-600 font-bold">ERROR LOADING CUSTOMERS: ${err.message.toUpperCase()}</td></tr>`;
+      }
+    }
+
+    // --------------------------------------------
+    // RENDER PRODUCT STATISTICS & DRAW CHARTS
+    // --------------------------------------------
+    let bestSellersChartInstance = null;
+    let categoryChartInstance = null;
+
+    async function renderAnalytics() {
+      if (!tableBody) return;
+
+      try {
+        tableBody.innerHTML = `<tr><td colspan="8" class="py-4 text-center font-mono text-[10px] text-black/40">LOADING DATA...</td></tr>`;
+
+        const response = await fetch(`${apiURL}/admin/products?limit=4000`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch products");
+        }
+
+        const productsList = data.products || [];
+
+        // Dynamic category dropdown options populating
+        const uniqueCategories = ["Club", "International", "Retro", "Custom"];
+        productsList.forEach(p => {
+          if (p.category && !uniqueCategories.includes(p.category)) {
+            uniqueCategories.push(p.category);
           }
         });
-      });
 
-    } catch (e) {
-      console.error(e);
+        const originalSelectValue = pCategory.value;
+        pCategory.innerHTML = "";
+        uniqueCategories.forEach(cat => {
+          const opt = document.createElement("option");
+          opt.value = cat;
+          opt.textContent = cat.toUpperCase();
+          opt.style.color = "#000000";
+          opt.style.backgroundColor = "#ffffff";
+          pCategory.appendChild(opt);
+        });
+        
+        const optNew = document.createElement("option");
+        optNew.value = "__NEW__";
+        optNew.textContent = "+ CREATE NEW CATEGORY...";
+        optNew.style.color = "#000000";
+        optNew.style.backgroundColor = "#ffffff";
+        pCategory.appendChild(optNew);
+
+        if (uniqueCategories.includes(originalSelectValue)) {
+          pCategory.value = originalSelectValue;
+        } else {
+          pCategory.value = uniqueCategories[0] || "";
+        }
+        if (customCategoryContainer) customCategoryContainer.classList.add("hidden");
+        if (pCustomCategory) {
+          pCustomCategory.removeAttribute("required");
+          pCustomCategory.value = "";
+        }
+
+        // Dynamic stats counters
+        let totalRevenue = 0;
+        let totalOrders = 0;
+        let totalViews = 0;
+
+        productsList.forEach((p) => {
+          totalRevenue += p.price * (p.totalSold || 0);
+          totalOrders += p.totalSold || 0;
+          totalViews += p.views || 0;
+        });
+
+        const averageVal = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+        const convRate = totalViews > 0 ? ((totalOrders / totalViews) * 100).toFixed(2) : "0.00";
+
+        const statRev = document.getElementById("stat-revenue");
+        const statOrd = document.getElementById("stat-orders");
+        const statConv = document.getElementById("stat-conversion");
+        const statAvgVal = document.getElementById("stat-average-val");
+
+        if (statRev) statRev.textContent = `₹${totalRevenue.toLocaleString()}`;
+        if (statOrd) statOrd.textContent = `${totalOrders} items`;
+        if (statConv) statConv.textContent = `${convRate}%`;
+        if (statAvgVal) statAvgVal.textContent = `₹${averageVal.toLocaleString()}`;
+
+        renderAdminOrders();
+        renderCustomers();
+
+        const deleteSelectedBtn = document.getElementById("delete-selected-btn");
+        const selectAllProducts = document.getElementById("select-all-products");
+
+        if (selectAllProducts) selectAllProducts.checked = false;
+        if (deleteSelectedBtn) deleteSelectedBtn.classList.add("hidden");
+
+        tableBody.innerHTML = "";
+
+        if (productsList.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="9" class="py-4 text-center font-mono text-[10px] text-black/40">NO PRODUCTS FOUND. PUBLISH SOME JERSEYS!</td></tr>`;
+          return;
+        }
+
+        productsList.forEach((p) => {
+          const tr = document.createElement("tr");
+          tr.className = "border-b border-black/5 hover:bg-zinc-50/50";
+          
+          const actionHtml = `
+            <button class="edit-p-btn text-black font-bold hover:underline mr-2.5" data-id="${p._id}">EDIT</button>
+            <button class="delete-p-btn text-red-600 font-bold hover:underline" data-id="${p._id}">DELETE</button>
+          `;
+          const growth = p.totalSold > 100 ? "+24.2%" : p.totalSold > 0 ? "+8.4%" : "+0%";
+          const growthColor = "text-green-600";
+
+          // Calculate total stock
+          const totalStock = p.sizes ? p.sizes.reduce((acc, s) => acc + (s.stock || 0), 0) : 0;
+          let stockHtml = "";
+          if (totalStock === 0) {
+            stockHtml = `<span class="text-red-600 font-bold">OUT OF STOCK</span>`;
+          } else if (totalStock <= 5) {
+            stockHtml = `<span class="text-amber-600 font-bold">LOW STOCK (${totalStock})</span>`;
+          } else {
+            stockHtml = `<span class="text-green-600">IN STOCK (${totalStock})</span>`;
+          }
+
+          tr.innerHTML = `
+            <td class="py-3.5 pr-2 w-6"><input type="checkbox" class="product-select-checkbox cursor-pointer" data-id="${p._id}" /></td>
+            <td class="py-3.5 pr-2 font-bold uppercase truncate max-w-[150px] text-black">${p.name}</td>
+            <td class="py-3.5 pr-2 uppercase text-black/60">${p.category}</td>
+            <td class="py-3.5 pr-2 text-right text-black font-bold">₹${p.price}</td>
+            <td class="py-3.5 pr-2 text-right font-bold">${stockHtml}</td>
+            <td class="py-3.5 pr-2 text-right text-black/65">${p.views || 0}</td>
+            <td class="py-3.5 pr-2 text-right text-black/65">${p.totalSold || 0}</td>
+            <td class="py-3.5 pr-2 text-right font-bold ${growthColor}">${growth}</td>
+            <td class="py-3.5 text-right font-bold">${actionHtml}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+
+        // Toggle state function for bulk delete button
+        function updateDeleteSelectedBtn() {
+          const checkedCheckboxes = document.querySelectorAll(".product-select-checkbox:checked");
+          const count = checkedCheckboxes.length;
+          if (count > 0) {
+            deleteSelectedBtn?.classList.remove("hidden");
+            if (deleteSelectedBtn) deleteSelectedBtn.textContent = `DELETE SELECTED (${count})`;
+          } else {
+            deleteSelectedBtn?.classList.add("hidden");
+          }
+        }
+
+        // Select All listener
+        selectAllProducts?.addEventListener("change", () => {
+          const isChecked = selectAllProducts.checked;
+          document.querySelectorAll(".product-select-checkbox").forEach((cb) => {
+            cb.checked = isChecked;
+          });
+          updateDeleteSelectedBtn();
+        });
+
+        // Individual checkbox change listener
+        document.querySelectorAll(".product-select-checkbox").forEach((cb) => {
+          cb.addEventListener("change", () => {
+            const total = document.querySelectorAll(".product-select-checkbox").length;
+            const checked = document.querySelectorAll(".product-select-checkbox:checked").length;
+            if (selectAllProducts) {
+              selectAllProducts.checked = (total === checked && total > 0);
+            }
+            updateDeleteSelectedBtn();
+          });
+        });
+
+        // Bulk delete click action
+        deleteSelectedBtn?.addEventListener("click", async () => {
+          const checkedCheckboxes = document.querySelectorAll(".product-select-checkbox:checked");
+          const ids = Array.from(checkedCheckboxes).map((cb) => cb.getAttribute("data-id"));
+          if (ids.length === 0) return;
+
+          if (!confirm(`Are you sure you want to delete the ${ids.length} selected products?`)) return;
+
+          deleteSelectedBtn.textContent = "DELETING... ◌";
+          deleteSelectedBtn.disabled = true;
+
+          try {
+            await Promise.all(ids.map(async (id) => {
+              const res = await fetch(`${apiURL}/admin/products/${id}`, {
+                method: "DELETE"
+              });
+              if (!res.ok) {
+                throw new Error(`Failed to delete product ID ${id}`);
+              }
+            }));
+
+            alert("Selected products deleted successfully!");
+            renderAnalytics();
+          } catch (err) {
+            alert("Error during bulk delete: " + err.message);
+          } finally {
+            deleteSelectedBtn.disabled = false;
+            deleteSelectedBtn.classList.add("hidden");
+          }
+        });
+
+        // Edit handlers
+        document.querySelectorAll(".edit-p-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            if (!id) return;
+
+            const p = productsList.find(item => item._id === id);
+            if (!p) return;
+
+            // Populate form fields
+            pName.value = p.name || "";
+            pPrice.value = p.price || 0;
+            pComparePrice.value = p.compareAtPrice || "";
+            pCategory.value = p.category || "";
+            pDesc.value = p.description || "";
+
+            // Populate sizes
+            const sizeMap = {};
+            if (p.sizes) {
+              p.sizes.forEach(s => {
+                sizeMap[s.name] = s.stock || 0;
+              });
+            }
+            stockS.value = sizeMap["S"] !== undefined ? sizeMap["S"] : 0;
+            stockM.value = sizeMap["M"] !== undefined ? sizeMap["M"] : 0;
+            stockL.value = sizeMap["L"] !== undefined ? sizeMap["L"] : 0;
+            stockXl.value = sizeMap["XL"] !== undefined ? sizeMap["XL"] : 0;
+            stockXxl.value = sizeMap["XXL"] !== undefined ? sizeMap["XXL"] : 0;
+
+            // Populate colors
+            if (p.colors) {
+              pColors.value = p.colors.map(c => c.name).join(", ");
+            } else {
+              pColors.value = "";
+            }
+
+            // Set edit mode
+            addForm.setAttribute("data-mode", "edit");
+            addForm.setAttribute("data-edit-id", id);
+
+            // Update form header
+            const formTitle = addForm.previousElementSibling;
+            if (formTitle) {
+              formTitle.innerHTML = `
+                <span class="material-symbols-outlined text-lg">edit</span>
+                EDIT JERSEY
+              `;
+            }
+
+            // Update submit button text
+            const submitBtn = addForm.querySelector("button[type='submit']");
+            if (submitBtn) {
+              submitBtn.innerHTML = `
+                <span class="material-symbols-outlined text-[16px]">save</span>
+                UPDATE JERSEY
+              `;
+            }
+
+            pImageFile.removeAttribute("required");
+            addForm.scrollIntoView({ behavior: "smooth" });
+          });
+        });
+
+        // Delete handlers
+        document.querySelectorAll(".delete-p-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            if (!id) return;
+
+            if (!confirm("Are you sure you want to delete this product?")) return;
+
+            try {
+              const delRes = await fetch(`${apiURL}/admin/products/${id}`, {
+                method: "DELETE"
+              });
+              const delData = await delRes.json();
+
+              if (!delRes.ok) {
+                throw new Error(delData.message || "Failed to delete product");
+              }
+
+              renderAnalytics();
+            } catch (err) {
+              alert("Error deleting product: " + err.message);
+            }
+          });
+        });
+
+        // Render Chart.js visuals
+        try {
+          if (typeof Chart !== "undefined") {
+            if (bestSellersChartInstance) bestSellersChartInstance.destroy();
+            if (categoryChartInstance) categoryChartInstance.destroy();
+
+            // 1. Best Sellers Bar Chart
+            const sortedForChart = [...productsList].sort((a, b) => (b.totalSold || 0) - (a.totalSold || 0)).slice(0, 5);
+            const labels = sortedForChart.map(p => p.name);
+            const dataSales = sortedForChart.map(p => p.totalSold || 0);
+
+            const ctxBest = document.getElementById("bestsellers-chart");
+            if (ctxBest) {
+              bestSellersChartInstance = new Chart(ctxBest, {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'JERSEYS SOLD',
+                    data: dataSales,
+                    backgroundColor: ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed'],
+                    borderColor: ['#1e40af', '#991b1b', '#15803d', '#b45309', '#6d28d9'],
+                    borderWidth: 1
+                  }]
+                },
+                options: {
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    x: { beginAtZero: true, grid: { display: false } },
+                    y: { grid: { display: false } }
+                  }
+                }
+              });
+            }
+
+            // 2. Category Pie/Doughnut Chart
+            const categoriesMap = {};
+            productsList.forEach(p => {
+              const cat = p.category || "Club";
+              categoriesMap[cat] = (categoriesMap[cat] || 0) + (p.totalSold || 0);
+            });
+
+            const catLabels = Object.keys(categoriesMap);
+            const catData = Object.values(categoriesMap);
+
+            const ctxCat = document.getElementById("category-chart");
+            if (ctxCat) {
+              categoryChartInstance = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                  labels: catLabels,
+                  datasets: [{
+                    data: catData,
+                    backgroundColor: ['#2563eb', '#dc2626', '#16a34a', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#4f46e5'],
+                    borderWidth: 1
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'right',
+                      labels: {
+                        boxWidth: 10,
+                        font: { size: 8 }
+                      }
+                    }
+                  }
+                }
+              });
+            }
+          }
+        } catch (chartErr) {
+          console.error("Failed to render Chart.js graphics:", chartErr);
+        }
+
+      } catch (err) {
+        console.error(err);
+        tableBody.innerHTML = `<tr><td colspan="7" class="py-4 text-center font-mono text-[10px] text-red-600 font-bold">ERROR LOADING DATA: ${err.message.toUpperCase()}</td></tr>`;
+      }
     }
-  }
 
-  checkSession();
+    // --------------------------------------------
+    // CMS HOMEPAGE BANNERS & SETTINGS
+    // --------------------------------------------
+    let currentHomepageData = null;
+
+    async function renderHomepageCMS() {
+      try {
+        const response = await fetch(`${apiURL}/homepage`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load homepage data");
+        }
+
+        const hp = data.homepage;
+        currentHomepageData = hp;
+
+        // Headings
+        document.getElementById("heading-featured-title").value = hp.sectionHeadings?.featured?.title || "FEATURED JERSEYS";
+        document.getElementById("heading-featured-subtitle").value = hp.sectionHeadings?.featured?.subtitle || "LATEST STORE ARRIVALS";
+        document.getElementById("heading-bestsellers-title").value = hp.sectionHeadings?.bestsellers?.title || "BEST SELLERS";
+        document.getElementById("heading-bestsellers-subtitle").value = hp.sectionHeadings?.bestsellers?.subtitle || "MOST POPULAR DESIGNS";
+
+        // Delivery Charges
+        document.getElementById("delivery-charge").value = hp.deliveryCharge || 0;
+        document.getElementById("custom-delivery-charge").value = hp.customDeliveryCharge || 0;
+
+        // Promotions
+        const promo1 = hp.promotions?.[0] || { title: "", description: "", badge: "", buttonLink: "" };
+        const promo2 = hp.promotions?.[1] || { title: "", description: "", badge: "", buttonLink: "" };
+        const promo3 = hp.promotions?.[2] || { title: "", description: "", badge: "" };
+
+        document.getElementById("promo1-badge").value = promo1.badge || "";
+        document.getElementById("promo1-title").value = promo1.title || "";
+        document.getElementById("promo1-desc").value = promo1.description || "";
+        document.getElementById("promo1-link").value = promo1.buttonLink || "";
+
+        document.getElementById("promo2-badge").value = promo2.badge || "";
+        document.getElementById("promo2-title").value = promo2.title || "";
+        document.getElementById("promo2-desc").value = promo2.description || "";
+        document.getElementById("promo2-link").value = promo2.buttonLink || "";
+
+        document.getElementById("promo3-badge").value = promo3.badge || "";
+        document.getElementById("promo3-title").value = promo3.title || "";
+        document.getElementById("promo3-desc").value = promo3.description || "";
+
+        // Category grid
+        const catContainer = document.getElementById("cms-categories-list");
+        if (catContainer) {
+          catContainer.innerHTML = "";
+          for (let i = 0; i < 3; i++) {
+            const cat = hp.categories?.[i] || { name: "", imageUrl: "", link: "" };
+            catContainer.innerHTML += `
+              <div class="border border-black/15 p-2 bg-white flex flex-col gap-1 text-[9px] uppercase font-mono">
+                <span class="font-bold text-black/50">Category ${i + 1}</span>
+                <div>
+                  <label class="block text-[8px] text-black/55 mb-0.5">Name</label>
+                  <input type="text" id="cat-name-${i}" value="${cat.name}" class="w-full bg-white border border-black px-2 py-0.5 text-[11px] font-mono focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-[8px] text-black/55 mb-0.5">Image URL / Style</label>
+                  <input type="text" id="cat-img-${i}" value="${cat.imageUrl}" class="w-full bg-white border border-black px-2 py-0.5 text-[11px] font-mono focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-[8px] text-black/55 mb-0.5">Link</label>
+                  <input type="text" id="cat-link-${i}" value="${cat.link}" class="w-full bg-white border border-black px-2 py-0.5 text-[11px] font-mono focus:outline-none" />
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        // CTA
+        document.getElementById("cta-title").value = hp.cta?.title || "";
+        document.getElementById("cta-desc").value = hp.cta?.description || "";
+        document.getElementById("cta-btn-text").value = hp.cta?.buttonText || "";
+        document.getElementById("cta-btn-link").value = hp.cta?.buttonLink || "";
+
+        // Hero slides list
+        const heroContainer = document.getElementById("cms-hero-list");
+        if (heroContainer) {
+          heroContainer.innerHTML = "";
+          if ((hp.heroSlides || []).length === 0) {
+            heroContainer.innerHTML = `<div class="p-3 border border-dashed border-black/20 text-center text-black/40 text-[9px] font-mono">No hero slides found. Add one!</div>`;
+          } else {
+            hp.heroSlides.forEach((slide) => {
+              const activeLabel = slide.isActive ? "ACTIVE" : "INACTIVE";
+              const activeColor = slide.isActive ? "text-green-700 bg-green-50 border-green-200" : "text-black/45 bg-zinc-100 border-zinc-300";
+              const patternText = slide.imageUrl.length > 50 ? "Uploaded File" : slide.imageUrl;
+              
+              const isRealImg = slide.imageUrl.length > 50 || slide.imageUrl.startsWith("http");
+              const imageContent = isRealImg 
+                ? `<img src="${slide.imageUrl}" alt="Slide Preview" class="w-10 h-10 object-cover border border-black/10 rounded-sm shrink-0" />`
+                : `<div class="w-10 h-10 flex items-center justify-center border border-black/10 rounded-sm bg-zinc-50 font-bold font-mono text-[7px] text-black/50 shrink-0 select-none">${slide.imageUrl.replace("solid-", "").replace("-stripes", "")}</div>`;
+
+              heroContainer.innerHTML += `
+                <div class="border border-black p-3 bg-white flex justify-between items-center font-mono text-[9px] uppercase">
+                  <div class="flex items-center gap-3">
+                    ${imageContent}
+                    <div>
+                      <p class="font-bold text-[10px] text-black">${slide.title}</p>
+                      <p class="text-black/55 mt-0.5">Eyebrow: ${slide.eyebrow} | Image: ${patternText}</p>
+                      <p class="text-black/40 mt-0.5">Link: ${slide.buttonLink} | Order: ${slide.displayOrder}</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button type="button" class="toggle-hero-status-btn border px-2 py-1 font-bold ${activeColor} hover:bg-black hover:text-white transition-colors" data-id="${slide._id}" data-active="${slide.isActive}">${activeLabel}</button>
+                    <button type="button" class="delete-hero-btn border border-red-200 text-red-600 bg-red-50 hover:bg-red-600 hover:text-white transition-colors px-2 py-1 font-bold" data-id="${slide._id}">DELETE</button>
+                  </div>
+                </div>
+              `;
+            });
+
+            // Toggle active slide click handler
+            document.querySelectorAll(".toggle-hero-status-btn").forEach(btn => {
+              btn.addEventListener("click", async () => {
+                const id = btn.getAttribute("data-id");
+                const currentActive = btn.getAttribute("data-active") === "true";
+                try {
+                  const res = await fetch(`${apiURL}/admin/homepage/hero/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ isActive: !currentActive })
+                  });
+                  if (!res.ok) throw new Error("Status update failed");
+                  renderHomepageCMS();
+                } catch (err) {
+                  alert(err.message);
+                }
+              });
+            });
+
+            // Delete slide handler
+            document.querySelectorAll(".delete-hero-btn").forEach(btn => {
+              btn.addEventListener("click", async () => {
+                if (!confirm("Are you sure you want to delete this hero slide?")) return;
+                const id = btn.getAttribute("data-id");
+                try {
+                  const res = await fetch(`${apiURL}/admin/homepage/hero/${id}`, {
+                    method: "DELETE"
+                  });
+                  if (!res.ok) throw new Error("Delete failed");
+                  renderHomepageCMS();
+                } catch (err) {
+                  alert(err.message);
+                }
+              });
+            });
+          }
+        }
+
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    // --------------------------------------------
+    // CMS HERO SLIDE FORM HANDLER & DISPLAY
+    // --------------------------------------------
+    const cmsAddHeroBtn = document.getElementById("cms-add-hero-btn");
+    const cmsCancelHeroBtn = document.getElementById("cms-cancel-hero-btn");
+    const cmsHeroFormContainer = document.getElementById("cms-hero-form-container");
+    const cmsHeroForm = document.getElementById("cms-hero-form");
+
+    cmsAddHeroBtn?.addEventListener("click", () => {
+      cmsHeroFormContainer?.classList.remove("hidden");
+    });
+    cmsCancelHeroBtn?.addEventListener("click", () => {
+      cmsHeroFormContainer?.classList.add("hidden");
+      cmsHeroForm.reset();
+    });
+
+    cmsHeroForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const btn = cmsHeroForm.querySelector("button[type='submit']");
+      const originalText = btn.textContent;
+      btn.textContent = "SAVING SLIDE... ◌";
+      btn.disabled = true;
+
+      try {
+        const fileEl = document.getElementById("new-hero-image-file");
+        const patternEl = document.getElementById("new-hero-image-pattern");
+
+        let imgUrl = patternEl.value.trim() || "solid-white";
+
+        if (fileEl && fileEl.files.length > 0) {
+          imgUrl = await getBase64(fileEl.files[0]);
+        }
+
+        const payload = {
+          eyebrow: document.getElementById("new-hero-eyebrow").value.trim(),
+          title: document.getElementById("new-hero-title").value.trim(),
+          description: document.getElementById("new-hero-desc").value.trim(),
+          buttonText: document.getElementById("new-hero-btn-text").value.trim() || "SHOP NOW",
+          buttonLink: document.getElementById("new-hero-btn-link").value.trim() || "/shop",
+          imageUrl: imgUrl,
+          displayOrder: parseInt(document.getElementById("new-hero-order").value, 10) || 0
+        };
+
+        const res = await fetch(`${apiURL}/admin/homepage/hero`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to add hero slide");
+        }
+
+        cmsHeroFormContainer?.classList.add("hidden");
+        cmsHeroForm.reset();
+        renderHomepageCMS();
+
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }
+    });
+
+    // --------------------------------------------
+    // CMS GENERAL CMS SUBMIT SETTINGS
+    // --------------------------------------------
+    const generalForm = document.getElementById("cms-general-form");
+    generalForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const promotions = [];
+      for (let i = 1; i <= 3; i++) {
+        const titleEl = document.getElementById(`promo${i}-title`);
+        const titleVal = titleEl ? titleEl.value.trim() : "";
+        if (titleVal) {
+          promotions.push({
+            title: titleVal,
+            description: document.getElementById(`promo${i}-desc`).value.trim(),
+            badge: document.getElementById(`promo${i}-badge`).value.trim(),
+            buttonText: i === 3 ? "SHOP GUARANTEE" : "EXPLORE",
+            buttonLink: i === 3 ? "/shop" : (document.getElementById(`promo${i}-link`)?.value?.trim() || "/shop")
+          });
+        }
+      }
+
+      const categoriesArray = [];
+      for (let i = 0; i < 3; i++) {
+        const nameEl = document.getElementById(`cat-name-${i}`);
+        const nameVal = nameEl ? nameEl.value.trim() : "";
+        if (nameVal) {
+          categoriesArray.push({
+            name: nameVal,
+            imageUrl: document.getElementById(`cat-img-${i}`).value.trim(),
+            link: document.getElementById(`cat-link-${i}`).value.trim()
+          });
+        }
+      }
+
+      const payload = {
+        deliveryCharge: parseFloat(document.getElementById("delivery-charge").value) || 0,
+        customDeliveryCharge: parseFloat(document.getElementById("custom-delivery-charge").value) || 0,
+        sectionHeadings: {
+          featured: {
+            title: document.getElementById("heading-featured-title").value.trim(),
+            subtitle: document.getElementById("heading-featured-subtitle").value.trim()
+          },
+          bestsellers: {
+            title: document.getElementById("heading-bestsellers-title").value.trim(),
+            subtitle: document.getElementById("heading-bestsellers-subtitle").value.trim()
+          }
+        },
+        promotions,
+        categories: categoriesArray,
+        cta: {
+          title: document.getElementById("cta-title").value.trim(),
+          description: document.getElementById("cta-desc").value.trim(),
+          buttonText: document.getElementById("cta-btn-text").value.trim(),
+          buttonLink: document.getElementById("cta-btn-link").value.trim()
+        }
+      };
+
+      try {
+        const res = await fetch(`${apiURL}/admin/homepage`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to update homepage settings");
+        }
+
+        alert("Homepage settings updated successfully!");
+        renderHomepageCMS();
+      } catch (err) {
+        alert("Error saving settings: " + err.message);
+      }
+    });
+
+    // Check session on load
+    checkSession();
+  });
 </script>

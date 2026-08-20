@@ -1,32 +1,78 @@
 ---
-// Bold subscriber/email newsletter signup form
+const { data } = Astro.props;
+
+const defaultCTA = {
+  title: "JOIN THE CLUB",
+  description:
+    "Sign up now for exclusive drops, custom jersey previews, and order tracking logs.",
+  buttonText: "REGISTER NOW",
+  buttonLink: "/signin",
+};
+
+const cta = data || defaultCTA;
 ---
+
 <section class="bg-black text-white py-16 px-6 relative overflow-hidden">
   <div class="max-w-md mx-auto text-center flex flex-col items-center">
-    <span class="text-xs font-mono tracking-widest text-white/50 uppercase mb-3">EXCLUSIVE ACCESS</span>
-    
-    <h2 class="text-3xl font-black tracking-tight leading-none uppercase mb-4">
-      JOIN THE CLUB
+
+    <!-- Eyebrow -->
+    <span
+      class="text-xs font-mono tracking-widest text-white/50 uppercase mb-3"
+    >
+      EXCLUSIVE ACCESS
+    </span>
+
+    <!-- Title -->
+    <h2
+      class="text-3xl font-black tracking-tight leading-none uppercase mb-4"
+    >
+      {cta.title || "JOIN THE CLUB"}
     </h2>
-    
-    <p class="text-xs font-mono text-white/60 max-w-[280px] mb-8 uppercase leading-relaxed tracking-wider">
-      Sign up for early access to limited edition drops, secret discount codes, and community news.
+
+    <!-- Description -->
+    <p
+      class="text-xs font-mono text-white/60 max-w-[280px] mb-8 uppercase leading-relaxed tracking-wider"
+    >
+      {cta.description ||
+        "Sign up now for exclusive drops, custom jersey previews, and order tracking logs."}
     </p>
 
-    <!-- Form -->
-    <form class="w-full flex flex-col gap-3" onsubmit="event.preventDefault(); alert('Subscribed!'); this.reset();">
-      <input 
-        type="email" 
-        placeholder="ENTER YOUR EMAIL" 
-        required 
-        class="w-full bg-white/5 border border-white/20 px-4 py-3 text-xs font-mono tracking-wider focus:outline-none focus:border-white focus:bg-white/10 text-white rounded-none uppercase placeholder:text-white/30"
-      />
-      <button 
-        type="submit" 
-        class="w-full bg-white text-black font-black py-3 text-xs tracking-widest uppercase hover:bg-black hover:text-white hover:border-white border border-transparent transition-all duration-300"
-      >
-        SUBSCRIBE
-      </button>
-    </form>
+    <!-- CTA Button -->
+    {
+      cta.buttonLink && (
+        <a
+          href={cta.buttonLink}
+          class="w-full bg-white text-black font-black py-4 text-[10px] tracking-widest uppercase hover:bg-black hover:text-white hover:border-white border border-transparent transition-all duration-300 text-center"
+        >
+          {cta.buttonText || "REGISTER NOW"}
+        </a>
+      )
+    }
+
+    <!-- Subscription Form -->
+    {
+      !cta.buttonLink && (
+        <form
+          class="w-full flex flex-col gap-3"
+          onsubmit="event.preventDefault(); alert('Subscribed!'); this.reset();"
+        >
+          <input
+            type="email"
+            name="email"
+            placeholder="ENTER YOUR EMAIL"
+            required
+            class="w-full bg-white/5 border border-white/20 px-4 py-3 text-[10px] font-mono tracking-wider focus:outline-none focus:border-white focus:bg-white/10 text-white rounded-none uppercase placeholder:text-white/30"
+          />
+
+          <button
+            type="submit"
+            class="w-full bg-white text-black font-black py-3 text-[10px] tracking-widest uppercase hover:bg-black hover:text-white hover:border-white border border-transparent transition-all duration-300"
+          >
+            {cta.buttonText || "SUBSCRIBE"}
+          </button>
+        </form>
+      )
+    }
+
   </div>
 </section>

@@ -1,22 +1,29 @@
 ---
-import { products } from "../../../data/products";
+import { apiFetch } from "../../../lib/api.js";
 import JerseySvg from "../../product/_JerseySvg.astro";
 
-// Take 3 products for Best Sellers list
-const bestSellers = products.slice(1, 4);
+const { title = "BEST SELLERS", subtitle = "Popular Demand" } = Astro.props;
+
+let bestSellers = [];
+try {
+  const data = await apiFetch("/products/bestsellers?limit=3");
+  bestSellers = data.products || [];
+} catch (error) {
+  console.error("Failed to load bestsellers:", error);
+}
 ---
 <section class="bg-white py-16 px-4 border-b border-black">
   <div class="max-w-md mx-auto">
     <div class="flex flex-col mb-8">
-      <span class="text-xs font-mono text-black/40 uppercase tracking-widest font-bold">Popular Demand</span>
-      <h2 class="text-2xl font-black uppercase tracking-tight">BEST SELLERS</h2>
+      <span class="text-xs font-mono text-black/40 uppercase tracking-widest font-bold">{subtitle}</span>
+      <h2 class="text-2xl font-black uppercase tracking-tight mt-0.5">{title}</h2>
     </div>
 
     <!-- Vertical List for best sellers -->
     <div class="flex flex-col gap-4">
       {bestSellers.map((jersey, idx) => (
         <a 
-          href={`/product/${jersey.id}`}
+          href={`/product/${jersey.slug}`}
           class="flex items-center gap-4 border border-black/10 p-3 hover:border-black transition-all duration-300 group"
         >
           {/* Rank Number */}
@@ -24,9 +31,13 @@ const bestSellers = products.slice(1, 4);
             0{idx + 1}
           </div>
 
-          {/* Mini Jersey Preview */}
-          <div class="w-16 h-16 flex-shrink-0 bg-zinc-50 border border-black/5 rounded-sm p-1">
-            <JerseySvg pattern={jersey.pattern} view="front" />
+          {/* Mini Jersey Preview / Picture URL */}
+          <div class="w-16 h-16 flex-shrink-0 bg-zinc-50 border border-black/5 rounded-sm p-1 flex items-center justify-center overflow-hidden">
+            {jersey.images && jersey.images[0] && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(jersey.images[0]) ? (
+              <img src={jersey.images[0]} alt={jersey.name} class="w-full h-full object-contain" />
+            ) : (
+              <JerseySvg pattern={jersey.images && jersey.images[0] || "solid-white"} view="front" />
+            )}
           </div>
 
           {/* Info */}
@@ -35,7 +46,12 @@ const bestSellers = products.slice(1, 4);
               <h3 class="font-bold text-sm tracking-tight truncate uppercase group-hover:underline pr-2">
                 {jersey.name}
               </h3>
-              <span class="font-mono text-xs font-bold shrink-0">₹{jersey.price}</span>
+              <div class="flex items-center gap-1.5 font-mono text-xs font-bold shrink-0">
+                <span>₹{jersey.price}</span>
+                {jersey.compareAtPrice && jersey.compareAtPrice > jersey.price && (
+                  <span class="text-[10px] text-black/30 line-through">₹{jersey.compareAtPrice}</span>
+                )}
+              </div>
             </div>
             <p class="text-[10px] font-mono text-black/50 uppercase mt-0.5">{jersey.category}</p>
           </div>

@@ -3,27 +3,58 @@ import Layout from "./_Layout.astro";
 import Filters from "./Shop/Filters/_Filters.astro";
 import ProductGrid from "./Shop/Product Grid/_ProductGrid.astro";
 
-// Get active category from URL search params
+// Get active category and sort from URL search params
 const url = new URL(Astro.request.url);
 const activeCategory = url.searchParams.get("category") || "All";
+const activeSort = url.searchParams.get("sort") || "";
 ---
 
 <Layout title={`JerseySports | Shop ${activeCategory}`}>
   <!-- Category Navigation Bar -->
   <Filters />
 
-  <!-- Shop Header Info -->
+  <!-- Shop Header Info & Sorting -->
   <div class="px-4 py-6 bg-white border-b border-black/10 select-none">
-    <div class="max-w-md mx-auto">
-      <span class="text-[9px] font-mono text-black/40 uppercase tracking-widest font-bold">Catalog</span>
-      <h2 class="text-3xl font-black uppercase tracking-tight leading-none mt-1">
-        {activeCategory === "All" ? "ALL JERSEYS" : `${activeCategory} Collection`}
-      </h2>
+    <div class="max-w-md mx-auto flex justify-between items-end gap-4">
+      <div>
+        <span class="text-[9px] font-mono text-black/40 uppercase tracking-widest font-bold">Catalog</span>
+        <h2 class="text-3xl font-black uppercase tracking-tight leading-none mt-1">
+          {activeCategory === "All" ? "ALL JERSEYS" : `${activeCategory} Collection`}
+        </h2>
+      </div>
+
+      <!-- Sort Selection -->
+      <div class="flex flex-col gap-1 items-end shrink-0">
+        <label for="shop-sort" class="font-mono text-[8px] text-black/40 uppercase font-bold tracking-wider">Sort By</label>
+        <select 
+          id="shop-sort" 
+          class="bg-white border border-black/10 text-[10px] font-mono px-2 py-1 focus:outline-none focus:border-black uppercase font-bold cursor-pointer"
+        >
+          <option value="" selected={activeSort === ""}>Newest</option>
+          <option value="price_asc" selected={activeSort === "price_asc"}>Price: Low to High</option>
+          <option value="price_desc" selected={activeSort === "price_desc"}>Price: High to Low</option>
+          <option value="bestsellers" selected={activeSort === "bestsellers"}>Bestsellers</option>
+        </select>
+      </div>
     </div>
   </div>
 
   <!-- Product List Grid -->
   <div class="max-w-md mx-auto">
-    <ProductGrid activeCategory={activeCategory} />
+    <ProductGrid activeCategory={activeCategory} activeSort={activeSort} />
   </div>
+
+  <script>
+    const sortSelect = document.getElementById("shop-sort");
+    sortSelect?.addEventListener("change", (e) => {
+      const val = (e.target as HTMLSelectElement).value;
+      const params = new URLSearchParams(window.location.search);
+      if (val) {
+        params.set("sort", val);
+      } else {
+        params.delete("sort");
+      }
+      window.location.search = params.toString();
+    });
+  </script>
 </Layout>

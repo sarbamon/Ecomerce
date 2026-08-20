@@ -1,13 +1,27 @@
 ---
-import { products } from "../../../data/products";
+import { apiFetch } from "../../../lib/api.js";
 import JerseySvg from "../../product/_JerseySvg.astro";
 
-const { activeCategory = "All" } = Astro.props;
+const { activeCategory = "All", activeSort = "" } = Astro.props;
+const apiURL = import.meta.env.PUBLIC_API_URL || "http://localhost:5000/api";
 
-// Filter products based on active category
-const filteredProducts = activeCategory === "All" 
-  ? products 
-  : products.filter(p => p.category.toLowerCase() === activeCategory.toLowerCase());
+const requestUrl = new URL(Astro.request.url);
+const activePage = parseInt(requestUrl.searchParams.get("page") || "1", 10);
+
+let filteredProducts = [];
+let pagination = { total: 0, page: 1, pages: 1, limit: 12 };
+
+try {
+  const categoryParam = activeCategory === "All" ? "" : `category=${encodeURIComponent(activeCategory)}`;
+  const sortParam = activeSort ? `sort=${activeSort}` : "";
+  const pageParam = `page=${activePage}`;
+  const queryParams = [categoryParam, sortParam, pageParam].filter(Boolean).join("&");
+  const responseData = await apiFetch(`/products${queryParams ? `?${queryParams}` : ""}`);
+  filteredProducts = responseData.products || [];
+  pagination = responseData.pagination || pagination;
+} catch (error) {
+  console.error("Failed to fetch products in ProductGrid:", error);
+}
 ---
 <div class="bg-white">
   {filteredProducts.length === 0 ? (
@@ -16,116 +30,274 @@ const filteredProducts = activeCategory === "All"
     </div>
   ) : (
     <div id="shop-product-grid" class="grid grid-cols-2 border-b border-black">
-      {filteredProducts.map((product, idx) => (
-        <a 
-          href={`/product/${product.id}`}
-          class={`p-4 flex flex-col justify-between border-black/10 group relative transition-colors duration-200 hover:bg-zinc-50 ${
-            idx % 2 === 0 ? "border-r border-b" : "border-b"
-          }`}
-        >
-          {/* Badge */}
-          <div class="flex justify-between items-start mb-2">
-            <span class="text-[8px] font-mono font-bold tracking-wider border border-black px-1 py-0.5 rounded-sm uppercase">
-              {product.category}
-            </span>
-            <span class="font-mono text-xs font-bold">₹{product.price}</span>
-          </div>
-
-          {/* Svg Image */}
-          <div class="w-full max-w-[130px] mx-auto my-4 group-hover:scale-105 transition-transform duration-300">
-            <JerseySvg pattern={product.pattern} view="front" />
-          </div>
-
-          {/* Title */}
-          <div class="mt-2">
-            <h3 class="font-bold text-xs tracking-tight uppercase group-hover:underline line-clamp-2">
-              {product.name}
-            </h3>
-            {product.badge && (
-              <span class="text-[8px] font-mono text-black/50 block mt-1 tracking-wider">
-                {product.badge}
+      {filteredProducts.map((product, idx) => {
+        const isOutOfStock = !product.sizes || !product.sizes.some(s => s.stock > 0);
+        return (
+          <a 
+            href={`/product/${product.slug}`}
+            class={`p-4 flex flex-col justify-between border-black/10 group relative transition-colors duration-200 hover:bg-zinc-50 ${
+              idx % 2 === 0 ? "border-r border-b" : "border-b"
+            } ${isOutOfStock ? "opacity-60" : ""}`}
+          >
+            {/* Badge */}
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-[8px] font-mono font-bold tracking-wider border border-black px-1 py-0.5 rounded-sm uppercase">
+                {product.category}
               </span>
-            )}
-          </div>
-        </a>
-      ))}
+              <div class="flex items-center gap-1.5 font-mono text-xs font-bold">
+                <span>₹{product.price}</span>
+                {product.compareAtPrice && product.compareAtPrice > product.price && (
+                  <span class="text-[10px] text-black/30 line-through">₹{product.compareAtPrice}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Svg Image / Picture URL */}
+            <div class="w-full max-w-[130px] mx-auto my-4 group-hover:scale-105 transition-transform duration-300">
+              {product.images && product.images[0] && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(product.images[0]) ? (
+                <img src={product.images[0]} alt={product.name} class="w-full h-[130px] object-contain mx-auto" />
+              ) : (
+                <JerseySvg pattern={product.images && product.images[0] || "solid-white"} view="front" />
+              )}
+            </div>
+
+            {/* Title */}
+            <div class="mt-2">
+              <h3 class="font-bold text-xs tracking-tight uppercase group-hover:underline line-clamp-2">
+                {product.name}
+              </h3>
+              {isOutOfStock ? (
+                <span class="text-[8px] font-mono text-red-650 font-bold block mt-1 tracking-wider uppercase">
+                  OUT OF STOCK
+                </span>
+              ) : product.badge ? (
+                <span class="text-[8px] font-mono text-black/50 block mt-1 tracking-wider">
+                  {product.badge}
+                </span>
+              ) : null}
+            </div>
+          </a>
+        );
+      })}
     </div>
   )}
+
+  {/* SSR Pagination Controls */}
+  <div id="pagination-container" class="flex justify-center items-center gap-1.5 py-6 border-b border-black select-none">
+    {pagination.pages > 1 && (
+      <>
+        {activePage > 1 && (
+          <a
+            href={`?${(() => {
+              const p = new URLSearchParams(requestUrl.searchParams);
+              p.set("page", (activePage - 1).toString());
+              return p.toString();
+            })()}`}
+            class="w-8 h-8 flex items-center justify-center border border-black/10 font-mono text-xs hover:border-black font-bold tracking-tight transition-all duration-200"
+            title="Previous Page"
+          >
+            &lt;
+          </a>
+        )}
+        
+        {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((pNum) => {
+          const isActive = pNum === activePage;
+          return (
+            <a
+              href={`?${(() => {
+                const p = new URLSearchParams(requestUrl.searchParams);
+                p.set("page", pNum.toString());
+                return p.toString();
+              })()}`}
+              class={`w-8 h-8 flex items-center justify-center font-mono text-xs font-bold tracking-tight transition-all duration-200 ${
+                isActive
+                  ? "border border-black bg-black text-white"
+                  : "border border-black/10 text-black hover:border-black"
+              }`}
+            >
+              {pNum}
+            </a>
+          );
+        })}
+
+        {activePage < pagination.pages && (
+          <a
+            href={`?${(() => {
+              const p = new URLSearchParams(requestUrl.searchParams);
+              p.set("page", (activePage + 1).toString());
+              return p.toString();
+            })()}`}
+            class="w-8 h-8 flex items-center justify-center border border-black/10 font-mono text-xs hover:border-black font-bold tracking-tight transition-all duration-200"
+            title="Next Page"
+          >
+            &gt;
+          </a>
+        )}
+      </>
+    )}
+  </div>
 </div>
 
-<script define:vars={{ activeCategory }}>
-  function loadCustomProducts() {
-    const grid = document.getElementById("shop-product-grid");
+<script define:vars={{ apiURL, activeCategory }}>
+  const grid = document.getElementById("shop-product-grid");
+  const sortSelect = document.getElementById("shop-sort");
+  const paginationContainer = document.getElementById("pagination-container");
+  const params = new URLSearchParams(window.location.search);
+
+  // Synchronize dropdown UI with URL
+  if (sortSelect) {
+    sortSelect.value = params.get("sort") || "";
+  }
+
+  function getJerseySvg(pattern) {
+    let fill = "#ffffff";
+    if (pattern === "vertical-stripes") fill = "url(#vertical-stripes-pat)";
+    else if (pattern === "horizontal-stripes") fill = "url(#horizontal-stripes-pat)";
+    else if (pattern === "fine-grid") fill = "url(#fine-grid-pat)";
+    else if (pattern === "solid-black" || pattern === "chevron-black") fill = "#000000";
+
+    const chevronMarkup = pattern === "chevron-black"
+      ? `<path d="M 105 200 L 200 280 L 295 200 L 295 240 L 200 320 L 105 240 Z" fill="#ffffff" />
+         <path d="M 150 60 L 200 120 L 250 60 Z" fill="#ffffff" />`
+      : "";
+
+    return `
+      <svg viewBox="0 0 400 450" class="w-full h-full drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)]" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M 120 60 L 80 100 L 40 130 L 70 180 L 105 150 L 105 390 L 295 390 L 295 150 L 330 180 L 360 130 L 320 100 L 280 60 Z"
+          fill="${fill}"
+          stroke="#000000"
+          stroke-width="8"
+          stroke-linejoin="round"
+        />
+        ${chevronMarkup}
+        <path d="M 160 60 C 160 90, 240 90, 240 60" fill="none" stroke="${pattern.includes('black') || pattern === 'vertical-stripes' ? '#ffffff' : '#000000'}" stroke-width="6" />
+      </svg>
+    `;
+  }
+
+  function renderClientPagination(paginationData) {
+    if (!paginationContainer) return;
+    paginationContainer.innerHTML = "";
+    if (!paginationData || paginationData.pages <= 1) return;
+
+    const currentPage = paginationData.page;
+    const totalPages = paginationData.pages;
+
+    // Previous button
+    if (currentPage > 1) {
+      const prevBtn = document.createElement("button");
+      prevBtn.className = "w-8 h-8 flex items-center justify-center border border-black/10 font-mono text-xs hover:border-black font-bold tracking-tight transition-all duration-200";
+      prevBtn.innerHTML = "&lt;";
+      prevBtn.addEventListener("click", () => {
+        const p = new URLSearchParams(window.location.search);
+        p.set("page", (currentPage - 1).toString());
+        window.location.search = p.toString();
+      });
+      paginationContainer.appendChild(prevBtn);
+    }
+
+    // Page buttons
+    for (let i = 1; i <= totalPages; i++) {
+      const pageBtn = document.createElement("button");
+      const isActive = i === currentPage;
+      pageBtn.className = `w-8 h-8 flex items-center justify-center font-mono text-xs font-bold tracking-tight transition-all duration-200 ${
+        isActive
+          ? "border border-black bg-black text-white"
+          : "border border-black/10 text-black hover:border-black"
+      }`;
+      pageBtn.innerText = i.toString();
+      pageBtn.addEventListener("click", () => {
+        const p = new URLSearchParams(window.location.search);
+        p.set("page", i.toString());
+        window.location.search = p.toString();
+      });
+      pageBtn.innerText = i;
+      paginationContainer.appendChild(pageBtn);
+    }
+
+    // Next button
+    if (currentPage < totalPages) {
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "w-8 h-8 flex items-center justify-center border border-black/10 font-mono text-xs hover:border-black font-bold tracking-tight transition-all duration-200";
+      nextBtn.innerHTML = "&gt;";
+      nextBtn.addEventListener("click", () => {
+        const p = new URLSearchParams(window.location.search);
+        p.set("page", (currentPage + 1).toString());
+        window.location.search = p.toString();
+      });
+      paginationContainer.appendChild(nextBtn);
+    }
+  }
+
+  async function loadProducts() {
     if (!grid) return;
 
     try {
-      const customList = JSON.parse(localStorage.getItem("custom_products") || "[]");
-      const filtered = activeCategory === "All" 
-        ? customList 
-        : customList.filter(p => p.category.toLowerCase() === activeCategory.toLowerCase());
+      // 1. Fetch filtered and sorted products from API
+      const res = await fetch(apiURL + "/products" + window.location.search);
+      const data = await res.json();
+      const products = data.products || [];
 
-      filtered.forEach((p, idx) => {
-        // Calculate index for border formatting
-        const totalItemsInStatic = grid.children.length;
-        const index = totalItemsInStatic + idx;
-        const borderClass = index % 2 === 0 ? "border-r border-b" : "border-b";
+      grid.innerHTML = "";
 
-        const a = document.createElement("a");
-        a.href = `/product/custom?id=${p.id}`;
-        a.className = `p-4 flex flex-col justify-between border-black/10 group relative transition-colors duration-200 hover:bg-zinc-50 ${borderClass}`;
+      // 2. Render fetched products
+      products.forEach((product, idx) => {
+        const isOutOfStock = !product.sizes || !product.sizes.some((s) => s.stock > 0);
+        const borderClass = idx % 2 === 0 ? "border-r border-b" : "border-b";
+        const hasRealImg = product.images && product.images[0] && !["vertical-stripes", "horizontal-stripes", "solid-black", "chevron-black", "solid-white", "fine-grid"].includes(product.images[0]);
         
-        // Define SVG patterns directly inline since we can't import JerseySvg inside raw client JS
-        let fill = "#ffffff";
-        if (p.pattern === "vertical-stripes") fill = "url(#vertical-stripes-pat)";
-        else if (p.pattern === "horizontal-stripes") fill = "url(#horizontal-stripes-pat)";
-        else if (p.pattern === "fine-grid") fill = "url(#fine-grid-pat)";
-        else if (p.pattern === "solid-black" || p.pattern === "chevron-black") fill = "#000000";
+        const a = document.createElement("a");
+        a.href = "/product/" + product.slug;
+        a.className = "p-4 flex flex-col justify-between border-black/10 group relative transition-colors duration-200 hover:bg-zinc-50 " + borderClass + " " + (isOutOfStock ? "opacity-60" : "");
+        
+        const imageContent = hasRealImg 
+          ? `<img src="${product.images[0]}" alt="${product.name}" class="w-full h-[130px] object-contain mx-auto" />`
+          : getJerseySvg(product.images && product.images[0] || "solid-white");
 
-        const chevronMarkup = p.pattern === "chevron-black" 
-          ? `<path d="M 105 200 L 200 280 L 295 200 L 295 240 L 200 320 L 105 240 Z" fill="#ffffff" />
-             <path d="M 150 60 L 200 120 L 250 60 Z" fill="#ffffff" />`
+        const badgeHtml = isOutOfStock
+          ? `<span class="text-[8px] font-mono text-red-650 font-bold block mt-1 tracking-wider uppercase">OUT OF STOCK</span>`
+          : product.badge
+            ? `<span class="text-[8px] font-mono text-black/50 block mt-1 tracking-wider">${product.badge}</span>`
+            : "";
+
+        const comparePriceHtml = product.compareAtPrice && product.compareAtPrice > product.price
+          ? `<span class="text-[10px] text-black/30 line-through">₹${product.compareAtPrice}</span>`
           : "";
 
         a.innerHTML = `
           <div class="flex justify-between items-start mb-2">
             <span class="text-[8px] font-mono font-bold tracking-wider border border-black px-1 py-0.5 rounded-sm uppercase">
-              ${p.category}
+              ${product.category}
             </span>
-            <span class="font-mono text-xs font-bold">₹${p.price}</span>
+            <div class="flex items-center gap-1.5 font-mono text-xs font-bold">
+              <span>₹${product.price}</span>
+              ${comparePriceHtml}
+            </div>
           </div>
 
           <div class="w-full max-w-[130px] mx-auto my-4 group-hover:scale-105 transition-transform duration-300">
-            <svg viewBox="0 0 400 450" class="w-full h-full drop-shadow-[0_10px_20px_rgba(0,0,0,0.15)]" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M 120 60 L 80 100 L 40 130 L 70 180 L 105 150 L 105 390 L 295 390 L 295 150 L 330 180 L 360 130 L 320 100 L 280 60 Z"
-                fill="${fill}"
-                stroke="#000000"
-                stroke-width="8"
-                stroke-linejoin="round"
-              />
-              ${chevronMarkup}
-              <path d="M 160 60 C 160 90, 240 90, 240 60" fill="none" stroke="${p.pattern.includes('black') || p.pattern === 'vertical-stripes' ? '#ffffff' : '#000000'}" stroke-width="6" />
-            </svg>
+            ${imageContent}
           </div>
 
           <div class="mt-2">
             <h3 class="font-bold text-xs tracking-tight uppercase group-hover:underline line-clamp-2">
-              ${p.name}
+              ${product.name}
             </h3>
-            ${p.badge ? `
-              <span class="text-[8px] font-mono text-black/50 block mt-1 tracking-wider">
-                ${p.badge}
-              </span>
-            ` : ""}
+            ${badgeHtml}
           </div>
         `;
-        
         grid.appendChild(a);
       });
-    } catch (e) {
-      console.error(e);
+
+      // 3. Update pagination
+      renderClientPagination(data.pagination);
+
+    } catch (err) {
+      console.error("Error loading products on client:", err);
     }
   }
 
-  loadCustomProducts();
+  // Load products on load
+  window.addEventListener("DOMContentLoaded", loadProducts);
 </script>
